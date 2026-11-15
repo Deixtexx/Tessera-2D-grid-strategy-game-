@@ -1,9 +1,43 @@
-# Godot 4+ specific ignores
+# ==========================================
+# Godot 4.1+ specific ignores (Official)
+# ==========================================
+# Папка кэша проекта (обязательно)
 .godot/
+# Бинарные файлы переводов
 *.translation
 
-# Temporary files
+# ==========================================
+# C# / .NET / Visual Studio specific
+# ==========================================
+# Папка кэша Visual Studio (та самая, что вызвала ошибку)
+.vs/
+# Пользовательские настройки IDE
+*.user
+*.userprefs
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Результаты сборки (бинарники, временные файлы компиляции)
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+# Кэш и временные файлы Visual Studio / MSBuild
+*.pdb
+*.cache
+*.tlog
+*.vspscc
+*.vssscc
+*.log
 *.tmp
 
-# Export outputs (optional, if you don't version executables)
-*.exe
+# ==========================================
+# Прочие временные файлы
+# ==========================================
+# Системный мусор (Windows/macOS)
+Thumbs.db
+.DS_Store
