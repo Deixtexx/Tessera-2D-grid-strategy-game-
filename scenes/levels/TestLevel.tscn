@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://cfvpuffnycbox" path="res://scripts/core/Grid.cs" id="2_w20ko"]
 [ext_resource type="Script" uid="uid://1c5sy3q2orcy" path="res://scripts/units/UnitManager.cs" id="3_3wv3p"]
 [ext_resource type="PackedScene" uid="uid://bhobob43wg205" path="res://scenes/units/Unit.tscn" id="4_timdk"]
+[ext_resource type="Texture2D" uid="uid://b7d0wrg3lm7ms" path="res://assets/sprites/tile-selection.png" id="5_j0sv7"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_w20ko"]
 texture = ExtResource("1_86d4f")
@@ -13,6 +14,17 @@ texture_region_size = Vector2i(64, 64)
 [sub_resource type="TileSet" id="TileSet_cg4xy"]
 tile_size = Vector2i(64, 64)
 sources/0 = SubResource("TileSetAtlasSource_w20ko")
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_buy1m"]
+texture = ExtResource("5_j0sv7")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_bf65x"]
+tile_size = Vector2i(64, 64)
+custom_data_layer_0/name = "move_cost"
+custom_data_layer_0/type = 2
+sources/1 = SubResource("TileSetAtlasSource_buy1m")
 
 [node name="Node2D" type="Node2D" unique_id=1613910169]
 
@@ -25,3 +37,7 @@ script = ExtResource("2_w20ko")
 script = ExtResource("3_3wv3p")
 UnitScene = ExtResource("4_timdk")
 _grid = NodePath("../TileMapLayer")
+
+[node name="HighlightLayer" type="TileMapLayer" parent="." unique_id=60264024]
+tile_map_data = PackedByteArray("AAAAAAAAAQAAAAAAAAABAAAAAQAAAAAAAAACAAAAAQAAAAAAAAADAAAAAQAAAAAAAAAEAAAAAQAAAAAAAAAFAAAAAQAAAAAAAAAGAAAAAQAAAAAAAAAGAAEAAQAAAAAAAAAHAAEAAQAAAAAAAAAHAAAAAQAAAAAAAAAFAAEAAQAAAAAAAAAEAAEAAQAAAAAAAAADAAEAAQAAAAAAAAACAAEAAQAAAAAAAAABAAEAAQAAAAAAAAAAAAEAAQAAAAAAAAAAAAIAAQAAAAAAAAABAAIAAQAAAAAAAAACAAIAAQAAAAAAAAADAAIAAQAAAAAAAAAEAAIAAQAAAAAAAAAFAAIAAQAAAAAAAAAGAAIAAQAAAAAAAAAHAAIAAQAAAAAAAAAHAAMAAQAAAAAAAAAGAAMAAQAAAAAAAAAFAAMAAQAAAAAAAAABAAMAAQAAAAAAAAAAAAMAAQAAAAAAAAACAAMAAQAAAAAAAAADAAMAAQAAAAAAAAAEAAMAAQAAAAAAAAAHAAQAAQAAAAAAAAAGAAQAAQAAAAAAAAAFAAQAAQAAAAAAAAAEAAQAAQAAAAAAAAADAAQAAQAAAAAAAAACAAQAAQAAAAAAAAABAAQAAQAAAAAAAAAAAAQAAQAAAAAAAAABAAUAAQAAAAAAAAACAAUAAQAAAAAAAAADAAUAAQAAAAAAAAAEAAUAAQAAAAAAAAAFAAUAAQAAAAAAAAAGAAUAAQAAAAAAAAAHAAUAAQAAAAAAAAAHAAYAAQAAAAAAAAAGAAYAAQAAAAAAAAAFAAYAAQAAAAAAAAAEAAYAAQAAAAAAAAADAAYAAQAAAAAAAAACAAYAAQAAAAAAAAABAAYAAQAAAAAAAAAAAAYAAQAAAAAAAAAAAAUAAQAAAAAAAAAAAAcAAQAAAAAAAAABAAcAAQAAAAAAAAACAAcAAQAAAAAAAAADAAcAAQAAAAAAAAAEAAcAAQAAAAAAAAAFAAcAAQAAAAAAAAAGAAcAAQAAAAAAAAAHAAcAAQAAAAAAAAA=")
+tile_set = SubResource("TileSet_bf65x")
