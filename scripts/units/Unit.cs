@@ -6,20 +6,24 @@ public partial class Unit : Node2D
     [Export] public UnitData Data { get; set; }
 
     public Vector2I GridPosition { get; set; }
+    public int CurrentHealth { get; private set; }
 
     public event Action<Unit, Vector2I, Vector2I> UnitMoved;
+    public event Action<Unit> UnitDied;
 
     private Sprite2D _visual;
+    private Sprite2D _selectionFrame;
 
     public override void _Ready()
     {
         _visual = GetNode<Sprite2D>("Sprite2D");
+        _selectionFrame = GetNode<Sprite2D>("SelectionFrame");
+        _selectionFrame.Visible = false;
 
         if (Data != null)
         {
-            // Если у вас белый спрайт, SelfModulate задаст нужный цвет.
-            // Если спрайт уже цветной, лучше использовать отдельный узел-рамку для выделения.
             _visual.SelfModulate = Data.UnitColor;
+            CurrentHealth = Data.MaxHealth;
         }
     }
 
@@ -33,11 +37,18 @@ public partial class Unit : Node2D
 
     public void SetSelected(bool selected)
     {
-        // Вариант 1: подсветка через SelfModulate (если спрайт белый/однотонный)
-        // _visual.SelfModulate = selected ? new Color(1.5f, 1.5f, 1.5f) : Colors.White;
+        _selectionFrame.Visible = selected;
+    }
 
-        // Вариант 2 (если нужна рамка): включить/выключить дочерний узел
-        var frame = GetNode<Sprite2D>("SelectionFrame");
-        frame.Visible = selected;
+    public void TakeDamage(int damage)
+    {
+        CurrentHealth -= damage;
+        GD.Print($"{Data.UnitName}: {CurrentHealth}/{Data.MaxHealth} HP");
+
+        if (CurrentHealth <= 0)
+        {
+            UnitDied?.Invoke(this);
+            QueueFree();
+        }
     }
 }
