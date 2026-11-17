@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://d2cawy721s16v" path="res://scripts/units/Unit.cs" id="1_gocqw"]
 [ext_resource type="Texture2D" uid="uid://da85brvabh4yc" path="res://assets/sprites/test_knight.png" id="2_nlg77"]
 [ext_resource type="Resource" uid="uid://d08p06setlixm" path="res://assets/data/ground_unit.tres" id="2_ty2l4"]
+[ext_resource type="Texture2D" uid="uid://b7d0wrg3lm7ms" path="res://assets/sprites/tile-selection.png" id="4_ty2l4"]
 
 [node name="Unit" type="Node2D" unique_id=1821029018]
 script = ExtResource("1_gocqw")
@@ -10,3 +11,7 @@ Data = ExtResource("2_ty2l4")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=827794277]
 texture = ExtResource("2_nlg77")
+
+[node name="SelectionFrame" type="Sprite2D" parent="." unique_id=1754926721]
+visible = false
+texture = ExtResource("4_ty2l4")
