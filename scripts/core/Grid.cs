@@ -1,50 +1,61 @@
 using Godot;
 using System.Collections.Generic;
+using static Grid;
 
 public partial class Grid : TileMapLayer
 {
+    public enum InteractionMode { Move, Attack }
+
     [Export] public int MapWidth { get; set; } = 8;
     [Export] public int MapHeight { get; set; } = 8;
     [Export] public UnitManager UnitManager { get; set; }
     [Export] public TileMapLayer HighlightLayer { get; set; }
-
     [Export] public int HighlightSourceId { get; set; } = 1;
     [Export] public Vector2I HighlightAtlasCoords { get; set; } = new Vector2I(0, 0);
 
     private Unit _selectedUnit;
     private List<Vector2I> _reachableCells = new();
+    private InteractionMode _mode = InteractionMode.Move;
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (@event is InputEventMouseButton mouseEvent && mouseEvent.Pressed)
+        if (@event is not InputEventMouseButton mouseEvent || !mouseEvent.Pressed)
+            return;
+
+        Vector2 localPos = ToLocal(GetGlobalMousePosition());
+        Vector2I gridCoords = LocalToMap(localPos);
+
+        // Правый клик — переключение режима
+        if (mouseEvent.ButtonIndex == MouseButton.Right && _selectedUnit != null)
         {
-            Vector2 localPos = ToLocal(GetGlobalMousePosition());
-            Vector2I gridCoords = LocalToMap(localPos);
-
-            var unitAtCell = UnitManager.GetUnitAt(gridCoords);
-
-            if (unitAtCell != null)
-                SelectUnit(unitAtCell);
-            else
-                HandleEmptyCellClick(gridCoords);
+            _mode = _mode == InteractionMode.Move ? InteractionMode.Attack : InteractionMode.Move;
+            GD.Print($"Режим: {_mode}");
+            //if (_selectedUnit != null)
+            ShowPatternForSelectedUnit();
+            return;
         }
+
+        if (mouseEvent.ButtonIndex != MouseButton.Left)
+            return;
+
+        var unitAtCell = UnitManager.GetUnitAt(gridCoords);
+
+        if (_mode == InteractionMode.Move)
+            HandleMoveClick(gridCoords, unitAtCell);
+        else
+            HandleAttackClick(gridCoords, unitAtCell);
     }
 
-    private void SelectUnit(Unit unit)
+    private void HandleMoveClick(Vector2I cell, Unit unitAtCell)
     {
-        _selectedUnit?.SetSelected(false);
-        _selectedUnit = unit;
-        _selectedUnit.SetSelected(true);
+        if (unitAtCell != null)
+        {
+            SelectUnit(unitAtCell);
+            return;
+        }
 
-        _reachableCells = GetReachableCells(unit);
-        ShowReachableCells(_reachableCells);
-    }
-
-    private void HandleEmptyCellClick(Vector2I cell)
-    {
         if (_selectedUnit == null) return;
 
-        // Клик только по подсвеченной клетке
         if (!_reachableCells.Contains(cell))
         {
             GD.Print("Клетка недоступна для хода");
@@ -57,13 +68,107 @@ public partial class Grid : TileMapLayer
             return;
         }
 
-        Vector2 worldPos = MapToLocal(cell);
-        _selectedUnit.MoveTo(cell, worldPos);
+        _selectedUnit.MoveTo(cell, MapToLocal(cell));
         _selectedUnit.SetSelected(false);
         _selectedUnit = null;
         _reachableCells.Clear();
         ClearHighlights();
     }
+
+    private void SelectUnit(Unit unit)
+    {
+        _selectedUnit?.SetSelected(false);
+        _selectedUnit = unit;
+        _selectedUnit.SetSelected(true);
+        ShowPatternForSelectedUnit();
+    }
+
+
+    private void HandleAttackClick(Vector2I cell, Unit targetUnit)
+    {
+        if (_selectedUnit == null)
+        {
+            GD.Print("Сначала выберите юнита");
+            return;
+        }
+        if (targetUnit == null)
+        {
+            GD.Print("Нет цели для атаки");
+            return;
+        }
+        if (targetUnit == _selectedUnit)
+        {
+            GD.Print("Нельзя атаковать себя");
+            return;
+        }
+        if (!IsInAttackPattern(cell, _selectedUnit))
+        {
+            GD.Print("Цель вне паттерна атаки");
+            return;
+        }
+
+        targetUnit.TakeDamage(_selectedUnit.Data.AttackDamage);
+        GD.Print($"{_selectedUnit.Data.UnitName} атакует {targetUnit.Data.UnitName}");
+
+        _mode = InteractionMode.Move;
+
+        _selectedUnit.SetSelected(false);
+        _selectedUnit = null;
+        ClearHighlights();
+    }
+
+    private bool IsInAttackPattern(Vector2I targetCell, Unit attacker)
+    {
+        Vector2I offset = targetCell - attacker.GridPosition;
+        foreach (var patternOffset in attacker.Data.AttackPattern)
+        {
+            if (offset == patternOffset) return true;
+        }
+        return false;
+    }
+
+
+    private void ShowPatternForSelectedUnit()
+    {
+        if (_selectedUnit == null) return;
+
+        ClearHighlights();
+        _reachableCells.Clear();
+
+        if (_mode == InteractionMode.Move)
+        {
+            _reachableCells = GetReachableCells(_selectedUnit);
+            HighlightCells(_reachableCells);
+        }
+        else
+        {
+            var attackCells = GetAttackCells(_selectedUnit);
+            HighlightCells(attackCells);
+        }
+    }
+
+    private List<Vector2I> GetAttackCells(Unit attacker)
+    {
+        var result = new List<Vector2I>();
+        foreach (var offset in attacker.Data.AttackPattern)
+        {
+            Vector2I cell = attacker.GridPosition + offset;
+            if (cell.X < 0 || cell.X >= MapWidth || cell.Y < 0 || cell.Y >= MapHeight)
+                continue;
+            result.Add(cell);
+        }
+        return result;
+    }
+
+    private void HighlightCells(List<Vector2I> cells)
+    {
+        if (HighlightLayer == null) return;
+        HighlightLayer.Clear();
+        foreach (var cell in cells)
+            HighlightLayer.SetCell(cell, HighlightSourceId, HighlightAtlasCoords);
+    }
+
+    private void ClearHighlights() => HighlightLayer?.Clear();
 
     private List<Vector2I> GetReachableCells(Unit unit)
     {
@@ -83,63 +188,35 @@ public partial class Grid : TileMapLayer
         while (queue.Count > 0)
         {
             var (current, remaining) = queue.Dequeue();
-
             foreach (var dir in dirs)
             {
                 Vector2I next = current + dir;
-
-                if (next.X < 0 || next.X >= MapWidth || next.Y < 0 || next.Y >= MapHeight)
-                    continue;
-
-                if (UnitManager.IsCellOccupied(next))
-                    continue;
+                if (next.X < 0 || next.X >= MapWidth || next.Y < 0 || next.Y >= MapHeight) continue;
+                if (UnitManager.IsCellOccupied(next)) continue;
 
                 int cost = GetMoveCost(next, unit.Data.Movement);
-                if (cost < 0) continue; // непроходимая клетка
+                if (cost < 0) continue;
 
                 int newRemaining = remaining - cost;
                 if (newRemaining < 0) continue;
-
-                if (bestRemaining.TryGetValue(next, out int existing) && existing >= newRemaining)
-                    continue;
+                if (bestRemaining.TryGetValue(next, out int existing) && existing >= newRemaining) continue;
 
                 bestRemaining[next] = newRemaining;
                 result.Add(next);
                 queue.Enqueue((next, newRemaining));
             }
         }
-
         return result;
     }
 
-    // Стоимость входа в клетку. -1 = непроходимо
     private int GetMoveCost(Vector2I cell, UnitData.MovementType movement)
     {
-        if (movement == UnitData.MovementType.Flying)
-            return 1; // летает, игнорирует местность
+        if (movement == UnitData.MovementType.Flying) return 1;
 
-        // Читаем custom data из TileSet (слой "move_cost")
         TileData tileData = GetCellTileData(cell);
-        if (tileData == null)
-            return 1; // пустая клетка — цена 1
+        if (tileData == null) return 1;
 
-        // Если в TileSet нет слоя move_cost, вернёт значение по умолчанию
         int cost = (int)tileData.GetCustomData("move_cost");
         return cost <= 0 ? 1 : cost;
-    }
-
-    private void ShowReachableCells(List<Vector2I> cells)
-    {
-        if (HighlightLayer == null) return;
-        HighlightLayer.Clear();
-        foreach (var cell in cells)
-        {
-            HighlightLayer.SetCell(cell, HighlightSourceId, HighlightAtlasCoords);
-        }
-    }
-
-    private void ClearHighlights()
-    {
-        HighlightLayer?.Clear();
     }
 }

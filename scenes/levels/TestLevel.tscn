@@ -39,10 +39,10 @@ script = ExtResource("2_w20ko")
 UnitManager = NodePath("../UnitManager")
 HighlightLayer = NodePath("../HighlightLayer")
 
-[node name="UnitManager" type="Node" parent="." unique_id=2128209698 node_paths=PackedStringArray("_grid")]
+[node name="UnitManager" type="Node" parent="." unique_id=2128209698 node_paths=PackedStringArray("Grid")]
 script = ExtResource("3_3wv3p")
 UnitScene = ExtResource("4_timdk")
-_grid = NodePath("../Grid")
+Grid = NodePath("../Grid")
 
 [node name="HighlightLayer" type="TileMapLayer" parent="." unique_id=60264024]
 tile_set = SubResource("TileSet_bf65x")

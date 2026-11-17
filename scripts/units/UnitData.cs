@@ -14,4 +14,15 @@ public partial class UnitData : Resource
     [Export] public int MovePoints { get; set; } = 5;
     [Export] public MovementType Movement { get; set; } = MovementType.Ground;
     [Export] public Color UnitColor { get; set; } = Colors.Red;
+
+    // --- Атака ---
+    [Export] public int AttackDamage { get; set; } = 10;
+    [Export] public int MaxHealth { get; set; } = 30;
+
+    // Паттерн атаки: смещения относительно позиции юнита
+    [Export]
+    public Godot.Collections.Array<Vector2I> AttackPattern { get; set; } = new()
+    {
+        Vector2I.Right, Vector2I.Left, Vector2I.Up, Vector2I.Down
+    };
 }

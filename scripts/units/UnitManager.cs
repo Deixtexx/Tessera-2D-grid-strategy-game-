@@ -4,20 +4,27 @@ using System.Collections.Generic;
 public partial class UnitManager : Node
 {
     [Export] public PackedScene UnitScene { get; set; }
-    [Export] public Grid _grid { get; set; }
+    [Export] public Grid Grid { get; set; }
+
     private Dictionary<Vector2I, Unit> _unitsOnGrid = new();
 
     public override void _Ready()
     {
-        GD.Print("TEST");
-        var unit = UnitScene.Instantiate<Unit>();
-        AddChild(unit);
-
-        PlaceUnit(unit, new Vector2I(2, 2));
-
+        // Пример спавна трёх разных юнитов
+        SpawnUnit(GD.Load<UnitData>("res://assets/data/knight.tres"), new Vector2I(1, 1));
+        SpawnUnit(GD.Load<UnitData>("res://assets/data/archer.tres"), new Vector2I(3, 1));
+        SpawnUnit(GD.Load<UnitData>("res://assets/data/thug.tres"), new Vector2I(5, 1));
     }
 
-    // Добавить юнита на поле
+    public Unit SpawnUnit(UnitData data, Vector2I cell)
+    {
+        var unit = UnitScene.Instantiate<Unit>();
+        unit.Data = data;
+        AddChild(unit);
+        PlaceUnit(unit, cell);
+        return unit;
+    }
+
     public void PlaceUnit(Unit unit, Vector2I cell)
     {
         if (_unitsOnGrid.ContainsKey(cell))
@@ -26,30 +33,24 @@ public partial class UnitManager : Node
             return;
         }
         unit.GridPosition = cell;
+        unit.Position = Grid.MapToLocal(cell);
         _unitsOnGrid[cell] = unit;
-
-        unit.Position = _grid.MapToLocal(cell); 
-
-        unit.UnitMoved += OnUnitMoved; // подписка на событие перемещения
+        unit.UnitMoved += OnUnitMoved;
+        unit.UnitDied += OnUnitDied;
     }
 
-    // Убрать юнита с поля
-    public void RemoveUnit(Unit unit)
-    {
-        _unitsOnGrid.Remove(unit.GridPosition);
-        unit.UnitMoved -= OnUnitMoved;
-    }
-
-    // Проверка занятости
     public bool IsCellOccupied(Vector2I cell) => _unitsOnGrid.ContainsKey(cell);
-
-    // Получить юнита на клетке (или null)
     public Unit GetUnitAt(Vector2I cell) => _unitsOnGrid.GetValueOrDefault(cell);
 
-    // Обработчик события перемещения юнита
     private void OnUnitMoved(Unit unit, Vector2I oldCell, Vector2I newCell)
     {
         _unitsOnGrid.Remove(oldCell);
         _unitsOnGrid[newCell] = unit;
+    }
+
+    private void OnUnitDied(Unit unit)
+    {
+        _unitsOnGrid.Remove(unit.GridPosition);
+        GD.Print($"Юнит на {unit.GridPosition} умер...");
     }
 }
