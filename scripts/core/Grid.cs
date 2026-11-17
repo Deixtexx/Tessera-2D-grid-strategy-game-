@@ -8,6 +8,9 @@ public partial class Grid : TileMapLayer
     [Export] public UnitManager UnitManager { get; set; }
     [Export] public TileMapLayer HighlightLayer { get; set; }
 
+    [Export] public int HighlightSourceId { get; set; } = 1;
+    [Export] public Vector2I HighlightAtlasCoords { get; set; } = new Vector2I(0, 0);
+
     private Unit _selectedUnit;
     private List<Vector2I> _reachableCells = new();
 
@@ -131,7 +134,7 @@ public partial class Grid : TileMapLayer
         HighlightLayer.Clear();
         foreach (var cell in cells)
         {
-            HighlightLayer.SetCell(cell, 0, new Vector2I(0, 0));
+            HighlightLayer.SetCell(cell, HighlightSourceId, HighlightAtlasCoords);
         }
     }
 

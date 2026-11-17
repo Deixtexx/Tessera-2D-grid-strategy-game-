@@ -34,10 +34,10 @@ public partial class Unit : Node2D
     public void SetSelected(bool selected)
     {
         // Вариант 1: подсветка через SelfModulate (если спрайт белый/однотонный)
-        _visual.SelfModulate = selected ? new Color(1.5f, 1.5f, 1.5f) : Colors.White;
+        // _visual.SelfModulate = selected ? new Color(1.5f, 1.5f, 1.5f) : Colors.White;
 
         // Вариант 2 (если нужна рамка): включить/выключить дочерний узел
-        // var frame = GetNode<Sprite2D>("SelectionFrame");
-        // frame.Visible = selected;
+        var frame = GetNode<Sprite2D>("SelectionFrame");
+        frame.Visible = selected;
     }
 }
