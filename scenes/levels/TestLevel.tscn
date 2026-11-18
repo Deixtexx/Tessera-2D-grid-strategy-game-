@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://1c5sy3q2orcy" path="res://scripts/units/UnitManager.cs" id="3_3wv3p"]
 [ext_resource type="PackedScene" uid="uid://bhobob43wg205" path="res://scenes/units/Unit.tscn" id="4_timdk"]
 [ext_resource type="Texture2D" uid="uid://b7d0wrg3lm7ms" path="res://assets/sprites/tile-selection.png" id="5_j0sv7"]
+[ext_resource type="Script" uid="uid://b3ncuucjlj42" path="res://scripts/core/TurnManager.cs" id="6_buy1m"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_w20ko"]
 texture = ExtResource("1_86d4f")
@@ -32,12 +33,13 @@ sources/1 = SubResource("TileSetAtlasSource_buy1m")
 
 [node name="Node2D" type="Node2D" unique_id=1613910169]
 
-[node name="Grid" type="TileMapLayer" parent="." unique_id=1351643514 node_paths=PackedStringArray("UnitManager", "HighlightLayer")]
+[node name="Grid" type="TileMapLayer" parent="." unique_id=1351643514 node_paths=PackedStringArray("UnitManager", "HighlightLayer", "TurnManager")]
 tile_map_data = PackedByteArray("AAABAAAAAAAAAAAAAAACAAAAAAAAAAAAAAADAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAFAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAHAAAAAAAAAAAAAAAHAAEAAAAAAAAAAAAGAAEAAAAAAAAAAAAFAAEAAAAAAAAAAAAEAAEAAAAAAAAAAAADAAEAAAAAAAAAAAACAAEAAAAAAAAAAAABAAEAAAAAAAAAAAABAAIAAAAAAAAAAAABAAMAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAMAAAAAAAAAAAACAAMAAAAAAAAAAAACAAIAAAAAAAAAAAADAAIAAAAAAAAAAAAEAAIAAAAAAAAAAAAFAAIAAAAAAAAAAAAGAAIAAAAAAAAAAAAHAAIAAAAAAAAAAAAHAAMAAAAAAAAAAAAGAAMAAAAAAAAAAAAFAAMAAAAAAAAAAAAEAAMAAAAAAAAAAAADAAMAAAAAAAAAAAADAAQAAAAAAAAAAAACAAQAAAAAAAAAAAABAAQAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAUAAAAAAAAAAAABAAUAAAAAAAAAAAACAAUAAAAAAAAAAAADAAUAAAAAAAAAAAAEAAUAAAAAAAAAAAAEAAQAAAAAAAAAAAAFAAQAAAAAAAAAAAAGAAQAAAAAAAAAAAAHAAQAAAAAAAAAAAAHAAUAAAAAAAAAAAAGAAUAAAAAAAAAAAAFAAUAAAAAAAAAAAABAAYAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAcAAAAAAAAAAAABAAcAAAAAAAAAAAACAAcAAAAAAAAAAAADAAcAAAAAAAAAAAAEAAcAAAAAAAAAAAAFAAcAAAAAAAAAAAAGAAcAAAAAAAAAAAAHAAcAAAAAAAAAAAAHAAYAAAAAAAAAAAAGAAYAAAAAAAAAAAAFAAYAAAAAAAAAAAAEAAYAAAAAAAAAAAADAAYAAAAAAAAAAAACAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
 tile_set = SubResource("TileSet_cg4xy")
 script = ExtResource("2_w20ko")
 UnitManager = NodePath("../UnitManager")
 HighlightLayer = NodePath("../HighlightLayer")
+TurnManager = NodePath("../TurnManager")
 
 [node name="UnitManager" type="Node" parent="." unique_id=2128209698 node_paths=PackedStringArray("Grid")]
 script = ExtResource("3_3wv3p")
@@ -46,3 +48,6 @@ Grid = NodePath("../Grid")
 
 [node name="HighlightLayer" type="TileMapLayer" parent="." unique_id=60264024]
 tile_set = SubResource("TileSet_bf65x")
+
+[node name="TurnManager" type="Node" parent="." unique_id=387840034]
+script = ExtResource("6_buy1m")
