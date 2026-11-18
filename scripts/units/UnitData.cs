@@ -11,12 +11,18 @@ public partial class UnitData : Resource
     }
 
     [Export] public string UnitName { get; set; } = "Unit";
-    [Export] public int MovePoints { get; set; } = 5;
+    [Export] public int MovePoints { get; set; } = 2;
+    [Export] public int MoveAPCostPerCell { get; set; } = 1;
     [Export] public MovementType Movement { get; set; } = MovementType.Ground;
     [Export] public Color UnitColor { get; set; } = Colors.Red;
 
+    public enum Faction { Player, Enemy }
+
+    [Export] public Faction Team { get; set; } = Faction.Player;
+
     // --- Атака ---
     [Export] public int AttackDamage { get; set; } = 10;
+    [Export] public int AttackAPCost { get; set; } = 3;
     [Export] public int MaxHealth { get; set; } = 30;
 
     // Паттерн атаки: смещения относительно позиции юнита

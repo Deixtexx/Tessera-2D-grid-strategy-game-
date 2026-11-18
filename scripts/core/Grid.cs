@@ -10,6 +10,7 @@ public partial class Grid : TileMapLayer
     [Export] public int MapHeight { get; set; } = 8;
     [Export] public UnitManager UnitManager { get; set; }
     [Export] public TileMapLayer HighlightLayer { get; set; }
+    [Export] public TurnManager TurnManager { get; set; }
     [Export] public int HighlightSourceId { get; set; } = 1;
     [Export] public Vector2I HighlightAtlasCoords { get; set; } = new Vector2I(0, 0);
 
@@ -19,6 +20,14 @@ public partial class Grid : TileMapLayer
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (@event.IsActionPressed("end_turn"))
+        {
+            GD.Print("Конец хода.");
+            EndTurn();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (@event is not InputEventMouseButton mouseEvent || !mouseEvent.Pressed)
             return;
 
@@ -50,6 +59,17 @@ public partial class Grid : TileMapLayer
     {
         if (unitAtCell != null)
         {
+            if (unitAtCell.Data.Team != TurnManager.CurrentTeam)
+            {
+                GD.Print("Это юнит другой команды");
+                return;
+            }
+            // если кликнули по уже выделенному
+            if (_selectedUnit == unitAtCell)
+            {
+                DeselectUnit();
+                return;
+            }
             SelectUnit(unitAtCell);
             return;
         }
@@ -68,19 +88,40 @@ public partial class Grid : TileMapLayer
             return;
         }
 
+        int distance = Mathf.Abs(cell.X - _selectedUnit.GridPosition.X)
+             + Mathf.Abs(cell.Y - _selectedUnit.GridPosition.Y);
+        int apCost = distance * _selectedUnit.Data.MoveAPCostPerCell;
+
+        if (distance > _selectedUnit.Data.MovePoints)
+        {
+            GD.Print($"Слишком далеко для этого юнита (макс {_selectedUnit.Data.MovePoints})");
+            return;
+        }
+
+        if (!TurnManager.TrySpendAP(apCost))
+        {
+            GD.Print("Недостаточно AP для хода");
+            return;
+        }
+
         _selectedUnit.MoveTo(cell, MapToLocal(cell));
-        _selectedUnit.SetSelected(false);
-        _selectedUnit = null;
-        _reachableCells.Clear();
-        ClearHighlights();
+        DeselectUnit();
     }
 
     private void SelectUnit(Unit unit)
     {
-        _selectedUnit?.SetSelected(false);
+        DeselectUnit();
         _selectedUnit = unit;
         _selectedUnit.SetSelected(true);
         ShowPatternForSelectedUnit();
+    }
+
+    private void DeselectUnit()
+    {
+        _selectedUnit?.SetSelected(false);
+        _selectedUnit = null;
+        _reachableCells.Clear();
+        ClearHighlights();
     }
 
 
@@ -104,6 +145,16 @@ public partial class Grid : TileMapLayer
         if (!IsInAttackPattern(cell, _selectedUnit))
         {
             GD.Print("Цель вне паттерна атаки");
+            return;
+        }
+        if (targetUnit.Data.Team == TurnManager.CurrentTeam)
+        {
+            GD.Print("Нельзя атаковать союзника");
+            return;
+        }
+        if (!TurnManager.TrySpendAP(_selectedUnit.Data.AttackAPCost))
+        {
+            GD.Print("Недостаточно AP для атаки");
             return;
         }
 
@@ -175,7 +226,8 @@ public partial class Grid : TileMapLayer
         var result = new List<Vector2I>();
         if (unit.Data == null) return result;
 
-        int budget = unit.Data.MovePoints;
+        int budget = Mathf.Min(unit.Data.MovePoints, TurnManager.CurrentAP);
+
         var queue = new Queue<(Vector2I cell, int remaining)>();
         var bestRemaining = new Dictionary<Vector2I, int>();
 
@@ -218,5 +270,11 @@ public partial class Grid : TileMapLayer
 
         int cost = (int)tileData.GetCustomData("move_cost");
         return cost <= 0 ? 1 : cost;
+    }
+
+    private void EndTurn()
+    {
+        TurnManager.EndTurn();
+        DeselectUnit();
     }
 }
