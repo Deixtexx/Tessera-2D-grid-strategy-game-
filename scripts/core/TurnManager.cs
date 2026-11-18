@@ -1,3 +1,4 @@
+using System;
 using Godot;
 
 public partial class TurnManager : Node
@@ -11,6 +12,8 @@ public partial class TurnManager : Node
 
     public int CurrentAP => CurrentTeam == UnitData.Faction.Player ? _playerAP : _enemyAP;
 
+    public event Action TurnChanged;
+
     public override void _Ready()
     {
         _playerAP = APPerTurn;
@@ -23,6 +26,9 @@ public partial class TurnManager : Node
         if (CurrentTeam == UnitData.Faction.Player) _playerAP -= cost;
         else _enemyAP -= cost;
         GD.Print($"AP ({CurrentTeam}): {CurrentAP}/{APPerTurn}");
+
+        TurnChanged?.Invoke();
+
         return true;
     }
 
@@ -37,5 +43,7 @@ public partial class TurnManager : Node
         else _enemyAP = APPerTurn;
 
         GD.Print($"Ход команды: {CurrentTeam}, AP: {CurrentAP}");
+
+        TurnChanged?.Invoke();
     }
 }

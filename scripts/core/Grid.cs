@@ -13,6 +13,10 @@ public partial class Grid : TileMapLayer
     [Export] public TurnManager TurnManager { get; set; }
     [Export] public int HighlightSourceId { get; set; } = 1;
     [Export] public Vector2I HighlightAtlasCoords { get; set; } = new Vector2I(0, 0);
+    [Export] public MessageUI MessageUI { get; set; }
+    [Export] public TileMapLayer AttackHighlightLayer { get; set; }
+    [Export] public int AttackHighlightSourceId { get; set; } = 0;
+    [Export] public Vector2I AttackHighlightAtlasCoords { get; set; } = new Vector2I(0, 0);
 
     private Unit _selectedUnit;
     private List<Vector2I> _reachableCells = new();
@@ -61,7 +65,7 @@ public partial class Grid : TileMapLayer
         {
             if (unitAtCell.Data.Team != TurnManager.CurrentTeam)
             {
-                GD.Print("Это юнит другой команды");
+                MessageUI.ShowMessage("Это юнит противника.", Colors.Red);
                 return;
             }
             // если кликнули по уже выделенному
@@ -78,13 +82,13 @@ public partial class Grid : TileMapLayer
 
         if (!_reachableCells.Contains(cell))
         {
-            GD.Print("Клетка недоступна для хода");
+            MessageUI.ShowMessage("Клетка недоступна для хода", Colors.Red);
             return;
         }
 
         if (UnitManager.IsCellOccupied(cell))
         {
-            GD.Print("Клетка занята");
+            MessageUI.ShowMessage("Клетка занята", Colors.Red);
             return;
         }
 
@@ -100,7 +104,7 @@ public partial class Grid : TileMapLayer
 
         if (!TurnManager.TrySpendAP(apCost))
         {
-            GD.Print("Недостаточно AP для хода");
+            MessageUI.ShowMessage("Недостаточно AP", Colors.Red);
             return;
         }
 
@@ -129,7 +133,7 @@ public partial class Grid : TileMapLayer
     {
         if (_selectedUnit == null)
         {
-            GD.Print("Сначала выберите юнита");
+            MessageUI.ShowMessage("Сначала выберите юнита", Colors.Red);
             return;
         }
         if (targetUnit == null)
@@ -144,17 +148,17 @@ public partial class Grid : TileMapLayer
         }
         if (!IsInAttackPattern(cell, _selectedUnit))
         {
-            GD.Print("Цель вне паттерна атаки");
+            MessageUI.ShowMessage("Цель далеко", Colors.Red);
             return;
         }
         if (targetUnit.Data.Team == TurnManager.CurrentTeam)
         {
-            GD.Print("Нельзя атаковать союзника");
+            MessageUI.ShowMessage("Нельзя атаковать своего юнита", Colors.Red);
             return;
         }
         if (!TurnManager.TrySpendAP(_selectedUnit.Data.AttackAPCost))
         {
-            GD.Print("Недостаточно AP для атаки");
+            MessageUI.ShowMessage("Недостаточно AP для атаки", Colors.Red);
             return;
         }
 
@@ -183,18 +187,20 @@ public partial class Grid : TileMapLayer
     {
         if (_selectedUnit == null) return;
 
-        ClearHighlights();
+        // Очищаем оба слоя
+        HighlightLayer?.Clear();
+        AttackHighlightLayer?.Clear();
         _reachableCells.Clear();
 
         if (_mode == InteractionMode.Move)
         {
             _reachableCells = GetReachableCells(_selectedUnit);
-            HighlightCells(_reachableCells);
+            HighlightCells(_reachableCells); // зелёные
         }
-        else
+        else // Attack
         {
             var attackCells = GetAttackCells(_selectedUnit);
-            HighlightCells(attackCells);
+            ShowAttackCells(attackCells); // красные
         }
     }
 
@@ -211,6 +217,19 @@ public partial class Grid : TileMapLayer
         return result;
     }
 
+    private void ShowAttackCells(List<Vector2I> cells)
+    {
+        if (AttackHighlightLayer == null) return;
+        AttackHighlightLayer.Clear();
+        foreach (var cell in cells)
+            AttackHighlightLayer.SetCell(cell, AttackHighlightSourceId, AttackHighlightAtlasCoords);
+    }
+
+    private void ClearAttackHighlights()
+    {
+        AttackHighlightLayer?.Clear();
+    }
+
     private void HighlightCells(List<Vector2I> cells)
     {
         if (HighlightLayer == null) return;
@@ -219,7 +238,11 @@ public partial class Grid : TileMapLayer
             HighlightLayer.SetCell(cell, HighlightSourceId, HighlightAtlasCoords);
     }
 
-    private void ClearHighlights() => HighlightLayer?.Clear();
+    private void ClearHighlights()
+    {
+        HighlightLayer?.Clear();
+        AttackHighlightLayer?.Clear();
+    }
 
     private List<Vector2I> GetReachableCells(Unit unit)
     {
