@@ -6,6 +6,9 @@
 [ext_resource type="PackedScene" uid="uid://bhobob43wg205" path="res://scenes/units/Unit.tscn" id="4_timdk"]
 [ext_resource type="Texture2D" uid="uid://b7d0wrg3lm7ms" path="res://assets/sprites/tile-selection.png" id="5_j0sv7"]
 [ext_resource type="Script" uid="uid://b3ncuucjlj42" path="res://scripts/core/TurnManager.cs" id="6_buy1m"]
+[ext_resource type="Texture2D" uid="uid://sunfwg6gpd47" path="res://assets/sprites/attack_highlight.png" id="6_ktef7"]
+[ext_resource type="Script" uid="uid://delw78sh1s2s8" path="res://scripts/ui/TurnUI.cs" id="7_4unv2"]
+[ext_resource type="Script" uid="uid://s74o24i8lptd" path="res://scripts/ui/MessageUI.cs" id="8_yynx6"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_w20ko"]
 texture = ExtResource("1_86d4f")
@@ -31,15 +34,26 @@ custom_data_layer_0/name = "move_cost"
 custom_data_layer_0/type = 2
 sources/1 = SubResource("TileSetAtlasSource_buy1m")
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_l1je0"]
+texture = ExtResource("6_ktef7")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_yynx6"]
+tile_size = Vector2i(64, 64)
+sources/0 = SubResource("TileSetAtlasSource_l1je0")
+
 [node name="Node2D" type="Node2D" unique_id=1613910169]
 
-[node name="Grid" type="TileMapLayer" parent="." unique_id=1351643514 node_paths=PackedStringArray("UnitManager", "HighlightLayer", "TurnManager")]
+[node name="Grid" type="TileMapLayer" parent="." unique_id=1351643514 node_paths=PackedStringArray("UnitManager", "HighlightLayer", "TurnManager", "MessageUI", "AttackHighlightLayer")]
 tile_map_data = PackedByteArray("AAABAAAAAAAAAAAAAAACAAAAAAAAAAAAAAADAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAFAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAHAAAAAAAAAAAAAAAHAAEAAAAAAAAAAAAGAAEAAAAAAAAAAAAFAAEAAAAAAAAAAAAEAAEAAAAAAAAAAAADAAEAAAAAAAAAAAACAAEAAAAAAAAAAAABAAEAAAAAAAAAAAABAAIAAAAAAAAAAAABAAMAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAMAAAAAAAAAAAACAAMAAAAAAAAAAAACAAIAAAAAAAAAAAADAAIAAAAAAAAAAAAEAAIAAAAAAAAAAAAFAAIAAAAAAAAAAAAGAAIAAAAAAAAAAAAHAAIAAAAAAAAAAAAHAAMAAAAAAAAAAAAGAAMAAAAAAAAAAAAFAAMAAAAAAAAAAAAEAAMAAAAAAAAAAAADAAMAAAAAAAAAAAADAAQAAAAAAAAAAAACAAQAAAAAAAAAAAABAAQAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAUAAAAAAAAAAAABAAUAAAAAAAAAAAACAAUAAAAAAAAAAAADAAUAAAAAAAAAAAAEAAUAAAAAAAAAAAAEAAQAAAAAAAAAAAAFAAQAAAAAAAAAAAAGAAQAAAAAAAAAAAAHAAQAAAAAAAAAAAAHAAUAAAAAAAAAAAAGAAUAAAAAAAAAAAAFAAUAAAAAAAAAAAABAAYAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAcAAAAAAAAAAAABAAcAAAAAAAAAAAACAAcAAAAAAAAAAAADAAcAAAAAAAAAAAAEAAcAAAAAAAAAAAAFAAcAAAAAAAAAAAAGAAcAAAAAAAAAAAAHAAcAAAAAAAAAAAAHAAYAAAAAAAAAAAAGAAYAAAAAAAAAAAAFAAYAAAAAAAAAAAAEAAYAAAAAAAAAAAADAAYAAAAAAAAAAAACAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
 tile_set = SubResource("TileSet_cg4xy")
 script = ExtResource("2_w20ko")
 UnitManager = NodePath("../UnitManager")
 HighlightLayer = NodePath("../HighlightLayer")
 TurnManager = NodePath("../TurnManager")
+MessageUI = NodePath("../CanvasLayer/MessageLabel")
+AttackHighlightLayer = NodePath("../AttackHighlightLayer")
 
 [node name="UnitManager" type="Node" parent="." unique_id=2128209698 node_paths=PackedStringArray("Grid")]
 script = ExtResource("3_3wv3p")
@@ -49,5 +63,32 @@ Grid = NodePath("../Grid")
 [node name="HighlightLayer" type="TileMapLayer" parent="." unique_id=60264024]
 tile_set = SubResource("TileSet_bf65x")
 
+[node name="AttackHighlightLayer" type="TileMapLayer" parent="." unique_id=71627706]
+modulate = Color(1, 1, 1, 0.34117648)
+tile_set = SubResource("TileSet_yynx6")
+
 [node name="TurnManager" type="Node" parent="." unique_id=387840034]
 script = ExtResource("6_buy1m")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1334640056]
+
+[node name="TurnLabel" type="Label" parent="CanvasLayer" unique_id=1660195077 node_paths=PackedStringArray("TurnManager")]
+offset_left = 724.0
+offset_top = 22.0
+offset_right = 982.0
+offset_bottom = 182.0
+theme_override_colors/font_color = Color(0.46666667, 1, 1, 1)
+theme_override_font_sizes/font_size = 24
+text = "Ход: Player | AP: 10/10"
+script = ExtResource("7_4unv2")
+TurnManager = NodePath("../../TurnManager")
+
+[node name="MessageLabel" type="Label" parent="CanvasLayer" unique_id=1697965815]
+modulate = Color(1, 1, 1, 0)
+offset_left = 151.0
+offset_top = 523.0
+offset_right = 365.0
+offset_bottom = 557.0
+theme_override_colors/font_color = Color(0.7411765, 0.02745098, 0, 1)
+theme_override_font_sizes/font_size = 20
+script = ExtResource("8_yynx6")
