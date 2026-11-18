@@ -22,18 +22,32 @@ public partial class Grid : TileMapLayer
     private List<Vector2I> _reachableCells = new();
     private InteractionMode _mode = InteractionMode.Move;
 
+    // подтверждение завершения хода
+    private bool _endTurnPending = false;
+    private ulong _endTurnPendingTime = 0;
+    private const ulong EndTurnConfirmWindowMs = 2000; // 2 секунды на подтверждение
+
+    public override void _Ready()
+    {
+        UnitManager.UpdateTeamFrames(TurnManager.CurrentTeam);
+    }
+
     public override void _UnhandledInput(InputEvent @event)
     {
         if (@event.IsActionPressed("end_turn"))
         {
-            GD.Print("Конец хода.");
-            EndTurn();
+            TryEndTurn();
             GetViewport().SetInputAsHandled();
             return;
         }
 
         if (@event is not InputEventMouseButton mouseEvent || !mouseEvent.Pressed)
             return;
+
+        if (@event is InputEventMouseButton)
+        {
+            _endTurnPending = false;
+        }
 
         Vector2 localPos = ToLocal(GetGlobalMousePosition());
         Vector2I gridCoords = LocalToMap(localPos);
@@ -298,6 +312,36 @@ public partial class Grid : TileMapLayer
     private void EndTurn()
     {
         TurnManager.EndTurn();
+        UnitManager.UpdateTeamFrames(TurnManager.CurrentTeam);
         DeselectUnit();
+    }
+
+    private void TryEndTurn()
+    {
+        // Если AP уже 0 - завершаем сразу, без подтверждения
+        if (TurnManager.CurrentAP == 0)
+        {
+            EndTurn();
+            return;
+        }
+
+        ulong now = Time.GetTicksMsec();
+
+        if (_endTurnPending && now - _endTurnPendingTime <= EndTurnConfirmWindowMs)
+        {
+            // Второе нажатие в пределах окна - подтверждаем
+            _endTurnPending = false;
+            EndTurn();
+        }
+        else
+        {
+            // Первое нажатие (или окно истекло) - показываем предупреждение
+            _endTurnPending = true;
+            _endTurnPendingTime = now;
+            MessageUI.ShowMessage(
+                $"У вас ещё есть AP ({TurnManager.CurrentAP}). Нажмите Space ещё раз, чтобы завершить ход.",
+                Colors.Yellow
+            );
+        }
     }
 }
