@@ -5,6 +5,7 @@ public partial class UnitManager : Node
 {
     [Export] public PackedScene UnitScene { get; set; }
     [Export] public Grid Grid { get; set; }
+    [Export] public TurnManager TurnManager { get; set; }
 
     private Dictionary<Vector2I, Unit> _unitsOnGrid = new();
 
@@ -14,6 +15,15 @@ public partial class UnitManager : Node
         SpawnUnit(GD.Load<UnitData>("res://assets/data/knight.tres"), new Vector2I(1, 1));
         SpawnUnit(GD.Load<UnitData>("res://assets/data/archer.tres"), new Vector2I(3, 1));
         SpawnUnit(GD.Load<UnitData>("res://assets/data/thug.tres"), new Vector2I(5, 1));
+    }
+
+    public void UpdateTeamFrames(UnitData.Faction currentTeam)
+    {
+        foreach (var unit in _unitsOnGrid.Values)
+        {
+            bool isCurrent = unit.Data.Team == currentTeam;
+            unit.SetTeamFrameVisible(isCurrent, isCurrent ? Colors.Green : Colors.Gray);
+        }
     }
 
     public Unit SpawnUnit(UnitData data, Vector2I cell)
@@ -37,6 +47,9 @@ public partial class UnitManager : Node
         _unitsOnGrid[cell] = unit;
         unit.UnitMoved += OnUnitMoved;
         unit.UnitDied += OnUnitDied;
+
+        bool isCurrent = unit.Data.Team == TurnManager.CurrentTeam;
+        unit.SetTeamFrameVisible(isCurrent, isCurrent ? Colors.Green : Colors.Gray);
     }
 
     public bool IsCellOccupied(Vector2I cell) => _unitsOnGrid.ContainsKey(cell);

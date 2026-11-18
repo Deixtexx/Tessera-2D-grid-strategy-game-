@@ -3,11 +3,16 @@
 [ext_resource type="Script" uid="uid://d2cawy721s16v" path="res://scripts/units/Unit.cs" id="1_gocqw"]
 [ext_resource type="Texture2D" uid="uid://da85brvabh4yc" path="res://assets/sprites/test_knight.png" id="2_nlg77"]
 [ext_resource type="Resource" uid="uid://dnayow285rh1w" path="res://assets/data/archer.tres" id="2_ty2l4"]
+[ext_resource type="Texture2D" uid="uid://dvf1nogt71gfx" path="res://assets/sprites/green_units_highlight.png" id="3_5uit4"]
 [ext_resource type="Texture2D" uid="uid://b7d0wrg3lm7ms" path="res://assets/sprites/tile-selection.png" id="4_ty2l4"]
 
 [node name="Unit" type="Node2D" unique_id=1821029018]
 script = ExtResource("1_gocqw")
 Data = ExtResource("2_ty2l4")
+
+[node name="TeamFrame" type="Sprite2D" parent="." unique_id=1159095408]
+modulate = Color(1, 1, 1, 0.5882353)
+texture = ExtResource("3_5uit4")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=827794277]
 texture = ExtResource("2_nlg77")

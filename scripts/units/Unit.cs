@@ -14,10 +14,13 @@ public partial class Unit : Node2D
     private Sprite2D _visual;
     private Sprite2D _selectionFrame;
 
+    private Sprite2D _teamFrame;
+
     public override void _Ready()
     {
         _visual = GetNode<Sprite2D>("Sprite2D");
         _selectionFrame = GetNode<Sprite2D>("SelectionFrame");
+        _teamFrame = GetNode<Sprite2D>("TeamFrame");
         _selectionFrame.Visible = false;
 
         if (Data != null)
@@ -25,6 +28,14 @@ public partial class Unit : Node2D
             _visual.SelfModulate = Data.UnitColor;
             CurrentHealth = Data.MaxHealth;
         }
+    }
+
+    public void SetTeamFrameVisible(bool visible, Color? color = null)
+    {
+        if (_teamFrame == null) return;
+        _teamFrame.Visible = visible;
+        if (color.HasValue)
+            _teamFrame.SelfModulate = color.Value;
     }
 
     public void MoveTo(Vector2I newCell, Vector2 worldPosition)
