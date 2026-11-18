@@ -26,6 +26,8 @@ public partial class UnitManager : Node
         }
     }
 
+    public List<Unit> GetAllUnits() => new List<Unit>(_unitsOnGrid.Values);
+
     public Unit SpawnUnit(UnitData data, Vector2I cell)
     {
         var unit = UnitScene.Instantiate<Unit>();

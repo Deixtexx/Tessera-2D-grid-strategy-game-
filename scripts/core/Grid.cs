@@ -4,21 +4,32 @@ using static Grid;
 
 public partial class Grid : TileMapLayer
 {
-    public enum InteractionMode { Move, Attack }
+    public enum InteractionMode { Move, Attack, Ability }
 
     [Export] public int MapWidth { get; set; } = 8;
     [Export] public int MapHeight { get; set; } = 8;
     [Export] public UnitManager UnitManager { get; set; }
-    [Export] public TileMapLayer HighlightLayer { get; set; }
     [Export] public TurnManager TurnManager { get; set; }
+
+    [Export] public MessageUI MessageUI { get; set; }
+
+    // подсветка ходов перемещения
+    [Export] public TileMapLayer HighlightLayer { get; set; }
     [Export] public int HighlightSourceId { get; set; } = 1;
     [Export] public Vector2I HighlightAtlasCoords { get; set; } = new Vector2I(0, 0);
-    [Export] public MessageUI MessageUI { get; set; }
+
+    // атака 
     [Export] public TileMapLayer AttackHighlightLayer { get; set; }
     [Export] public int AttackHighlightSourceId { get; set; } = 0;
     [Export] public Vector2I AttackHighlightAtlasCoords { get; set; } = new Vector2I(0, 0);
 
+    // показ задеваемых способностью тайлов
+    [Export] public TileMapLayer PreviewHighlightLayer { get; set; }
+    [Export] public int PreviewSourceId { get; set; } = 0; // проверьте в своём TileSet
+    [Export] public Vector2I PreviewAtlasCoords { get; set; } = new Vector2I(0, 0);
+
     private Unit _selectedUnit;
+    private AbilityData _selectedAbility;
     private List<Vector2I> _reachableCells = new();
     private InteractionMode _mode = InteractionMode.Move;
 
@@ -27,6 +38,10 @@ public partial class Grid : TileMapLayer
     private ulong _endTurnPendingTime = 0;
     private const ulong EndTurnConfirmWindowMs = 2000; // 2 секунды на подтверждение
 
+    private bool IsInsideMap(Vector2I cell)
+    {
+        return cell.X >= 0 && cell.X < MapWidth && cell.Y >= 0 && cell.Y < MapHeight;
+    }
     public override void _Ready()
     {
         UnitManager.UpdateTeamFrames(TurnManager.CurrentTeam);
@@ -39,6 +54,13 @@ public partial class Grid : TileMapLayer
             TryEndTurn();
             GetViewport().SetInputAsHandled();
             return;
+        }
+
+        if (@event is InputEventKey keyEvent && keyEvent.Pressed && !keyEvent.Echo)
+        {
+            if (keyEvent.Keycode == Key.Key1) { SelectAbility(0); GetViewport().SetInputAsHandled(); return; }
+            if (keyEvent.Keycode == Key.Key2) { SelectAbility(1); GetViewport().SetInputAsHandled(); return; }
+            if (keyEvent.Keycode == Key.Key3) { SelectAbility(2); GetViewport().SetInputAsHandled(); return; }
         }
 
         if (@event is not InputEventMouseButton mouseEvent || !mouseEvent.Pressed)
@@ -69,8 +91,24 @@ public partial class Grid : TileMapLayer
 
         if (_mode == InteractionMode.Move)
             HandleMoveClick(gridCoords, unitAtCell);
+        else if (_mode == InteractionMode.Ability)
+            HandleAbilityClick(gridCoords, unitAtCell);
         else
             HandleAttackClick(gridCoords, unitAtCell);
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_mode != InteractionMode.Ability || _selectedAbility == null || _selectedUnit == null)
+        {
+            PreviewHighlightLayer?.Clear();
+            return;
+        }
+
+        Vector2 localPos = ToLocal(GetGlobalMousePosition());
+        Vector2I hoveredCell = LocalToMap(localPos);
+
+        UpdateAbilityPreview(hoveredCell);
     }
 
     private void HandleMoveClick(Vector2I cell, Unit unitAtCell)
@@ -201,21 +239,22 @@ public partial class Grid : TileMapLayer
     {
         if (_selectedUnit == null) return;
 
-        // Очищаем оба слоя
         HighlightLayer?.Clear();
         AttackHighlightLayer?.Clear();
+        PreviewHighlightLayer?.Clear();
         _reachableCells.Clear();
 
         if (_mode == InteractionMode.Move)
         {
             _reachableCells = GetReachableCells(_selectedUnit);
-            HighlightCells(_reachableCells); // зелёные
+            HighlightCells(_reachableCells);
         }
-        else // Attack
+        else if (_mode == InteractionMode.Attack)
         {
             var attackCells = GetAttackCells(_selectedUnit);
-            ShowAttackCells(attackCells); // красные
+            ShowAttackCells(attackCells);
         }
+        // Для Ability ничего статично, только предпросмотр в _Process
     }
 
     private List<Vector2I> GetAttackCells(Unit attacker)
@@ -311,6 +350,9 @@ public partial class Grid : TileMapLayer
 
     private void EndTurn()
     {
+        foreach (var unit in UnitManager.GetAllUnits())
+            unit.TickStatuses();
+
         TurnManager.EndTurn();
         UnitManager.UpdateTeamFrames(TurnManager.CurrentTeam);
         DeselectUnit();
@@ -342,6 +384,108 @@ public partial class Grid : TileMapLayer
                 $"У вас ещё есть AP ({TurnManager.CurrentAP}). Нажмите Space ещё раз, чтобы завершить ход.",
                 Colors.Yellow
             );
+        }
+    }
+
+    private void SelectAbility(int index)
+    {
+        if (_selectedUnit == null) return;
+        if (index < 0 || index >= _selectedUnit.Data.Abilities.Count) return;
+
+        _selectedAbility = _selectedUnit.Data.Abilities[index];
+        _mode = InteractionMode.Ability;
+        GD.Print($"Выбрана способность: {_selectedAbility.AbilityName}");
+        ShowPatternForSelectedUnit();
+    }
+
+    private List<Vector2I> GetAbilityCells(Unit caster, AbilityData ability)
+    {
+        var result = new List<Vector2I>();
+        if (ability == null) return result;
+        foreach (var offset in ability.TargetingPattern)
+        {
+            Vector2I cell = caster.GridPosition + offset;
+            if (cell.X < 0 || cell.X >= MapWidth || cell.Y < 0 || cell.Y >= MapHeight) continue;
+            result.Add(cell);
+        }
+        return result;
+    }
+
+    private void HandleAbilityClick(Vector2I cell, Unit targetUnit)
+    {
+        if (_selectedUnit == null || _selectedAbility == null) return;
+
+        // Проверка TargetingPattern
+        Vector2I offset = cell - _selectedUnit.GridPosition;
+        bool inTargeting = false;
+        foreach (var p in _selectedAbility.TargetingPattern)
+            if (p == offset) { inTargeting = true; break; }
+
+        if (!inTargeting)
+        {
+            MessageUI.ShowMessage("Цель вне зоны способности", Colors.Red);
+            return;
+        }
+
+        // Проверка типа цели
+        switch (_selectedAbility.Target)
+        {
+            case AbilityTargetType.Enemy:
+                if (targetUnit == null || targetUnit.Data.Team == _selectedUnit.Data.Team)
+                { MessageUI.ShowMessage("Нужна вражеская цель", Colors.Red); return; }
+                break;
+            case AbilityTargetType.Ally:
+                if (targetUnit == null || targetUnit.Data.Team != _selectedUnit.Data.Team)
+                { MessageUI.ShowMessage("Нужна союзная цель", Colors.Red); return; }
+                break;
+            case AbilityTargetType.EmptyCell:
+                if (targetUnit != null)
+                { MessageUI.ShowMessage("Нужна пустая клетка", Colors.Red); return; }
+                break;
+        }
+
+        // Списание AP
+        if (!TurnManager.TrySpendAP(_selectedAbility.APCost))
+        {
+            MessageUI.ShowMessage("Недостаточно AP", Colors.Red);
+            return;
+        }
+
+        // Применение эффектов
+        foreach (var effect in _selectedAbility.Effects)
+            effect.Apply(targetUnit, _selectedUnit, UnitManager);
+
+        GD.Print($"{_selectedUnit.Data.UnitName} применяет {_selectedAbility.AbilityName}");
+
+        _mode = InteractionMode.Move;
+        _selectedAbility = null;
+        DeselectUnit();
+    }
+    private void UpdateAbilityPreview(Vector2I hoveredCell)
+    {
+        if (PreviewHighlightLayer == null || _selectedAbility == null || _selectedUnit == null)
+            return;
+
+        PreviewHighlightLayer.Clear();
+
+        // Проверяем, что клетка под курсором входит в TargetingPattern
+        Vector2I offsetFromUnit = hoveredCell - _selectedUnit.GridPosition;
+        bool inTargeting = false;
+        foreach (var p in _selectedAbility.TargetingPattern)
+            if (p == offsetFromUnit) { inTargeting = true; break; }
+
+        if (!inTargeting || !IsInsideMap(hoveredCell))
+            return;
+
+        // Рисуем форму эффекта от клетки под курсором
+        foreach (var effect in _selectedAbility.Effects)
+        {
+            foreach (var effectOffset in effect.GetEffectOffsets())
+            {
+                Vector2I cell = hoveredCell + effectOffset;
+                if (IsInsideMap(cell))
+                    PreviewHighlightLayer.SetCell(cell, PreviewSourceId, PreviewAtlasCoords);
+            }
         }
     }
 }
