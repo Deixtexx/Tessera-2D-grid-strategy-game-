@@ -75,8 +75,22 @@ public partial class Unit : Node2D
 
     public void ApplyStatus(StatusInstance status)
     {
-        _statuses.Add(status);
-        GD.Print($"{Data.UnitName} получил статус {status.Type} на {status.RemainingTurns} ходов");
+        // Ищем существующий статус того же типа
+        var existing = _statuses.Find(s => s.Type == status.Type);
+
+        if (existing != null)
+        {
+            // Не стакаем, но обновляем длительность до максимума
+            existing.RemainingTurns = Mathf.Max(existing.RemainingTurns, status.RemainingTurns);
+            // Для яда/огня можно также обновить Power до максимума
+            existing.Power = Mathf.Max(existing.Power, status.Power);
+            GD.Print($"{Data.UnitName}: статус {status.Type} обновлён до {existing.RemainingTurns} ходов");
+        }
+        else
+        {
+            _statuses.Add(status);
+            GD.Print($"{Data.UnitName} получил статус {status.Type} на {status.RemainingTurns} ходов");
+        }
     }
 
     public void TickStatuses()
@@ -104,4 +118,10 @@ public partial class Unit : Node2D
     }
 
     public bool IsStunned() => _statuses.Exists(s => s.Type == StatusEffect.StatusType.Stun);
+
+    public int GetStunRemainingTurns()
+    {
+        var stun = _statuses.Find(s => s.Type == StatusEffect.StatusType.Stun);
+        return stun?.RemainingTurns ?? 0;
+    }
 }

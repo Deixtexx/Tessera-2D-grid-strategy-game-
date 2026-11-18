@@ -120,6 +120,11 @@ public partial class Grid : TileMapLayer
                 MessageUI.ShowMessage("Это юнит противника.", Colors.Red);
                 return;
             }
+            if (unitAtCell.IsStunned())
+            {
+                MessageUI.ShowMessage($"{unitAtCell.Data.UnitName} оглушён ещё на {unitAtCell.GetStunRemainingTurns()} ход(а)", Colors.Yellow);
+                return;
+            }
             // если кликнули по уже выделенному
             if (_selectedUnit == unitAtCell)
             {
@@ -131,6 +136,8 @@ public partial class Grid : TileMapLayer
         }
 
         if (_selectedUnit == null) return;
+
+        if (!CanSelectedUnitAct()) return;
 
         if (!_reachableCells.Contains(cell))
         {
@@ -188,6 +195,8 @@ public partial class Grid : TileMapLayer
             MessageUI.ShowMessage("Сначала выберите юнита", Colors.Red);
             return;
         }
+        if (!CanSelectedUnitAct()) return;
+
         if (targetUnit == null)
         {
             GD.Print("Нет цели для атаки");
@@ -415,6 +424,8 @@ public partial class Grid : TileMapLayer
     {
         if (_selectedUnit == null || _selectedAbility == null) return;
 
+        if (!CanSelectedUnitAct()) return;
+
         // Проверка TargetingPattern
         Vector2I offset = cell - _selectedUnit.GridPosition;
         bool inTargeting = false;
@@ -487,5 +498,18 @@ public partial class Grid : TileMapLayer
                     PreviewHighlightLayer.SetCell(cell, PreviewSourceId, PreviewAtlasCoords);
             }
         }
+    }
+
+    private bool CanSelectedUnitAct()
+    {
+        if (_selectedUnit == null) return false;
+
+        if (_selectedUnit.IsStunned())
+        {
+            MessageUI.ShowMessage($"{_selectedUnit.Data.UnitName} оглушён и не может совершать действия", Colors.Red);
+            return false;
+        }
+
+        return true;
     }
 }
