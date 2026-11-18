@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 
 public partial class Unit : Node2D
 {
@@ -10,6 +11,9 @@ public partial class Unit : Node2D
 
     public event Action<Unit, Vector2I, Vector2I> UnitMoved;
     public event Action<Unit> UnitDied;
+
+    // статусы юнита
+    private List<StatusInstance> _statuses = new();
 
     private Sprite2D _visual;
     private Sprite2D _selectionFrame;
@@ -62,4 +66,42 @@ public partial class Unit : Node2D
             QueueFree();
         }
     }
+
+    public void Heal(int amount)
+    {
+        CurrentHealth = Mathf.Min(CurrentHealth + amount, Data.MaxHealth);
+        GD.Print($"{Data.UnitName}: +{amount} HP, теперь {CurrentHealth}/{Data.MaxHealth}");
+    }
+
+    public void ApplyStatus(StatusInstance status)
+    {
+        _statuses.Add(status);
+        GD.Print($"{Data.UnitName} получил статус {status.Type} на {status.RemainingTurns} ходов");
+    }
+
+    public void TickStatuses()
+    {
+        foreach (var status in _statuses.ToArray())
+        {
+            switch (status.Type)
+            {
+                case StatusEffect.StatusType.Poison:
+                    TakeDamage(status.Power);
+                    GD.Print($"{Data.UnitName}: яд наносит {status.Power} урона");
+                    break;
+                case StatusEffect.StatusType.Burn:
+                    TakeDamage(status.Power);
+                    GD.Print($"{Data.UnitName}: огонь наносит {status.Power} урона");
+                    break;
+                case StatusEffect.StatusType.Stun:
+                    GD.Print($"{Data.UnitName} оглушён");
+                    break;
+            }
+            status.RemainingTurns--;
+            if (status.RemainingTurns <= 0)
+                _statuses.Remove(status);
+        }
+    }
+
+    public bool IsStunned() => _statuses.Exists(s => s.Type == StatusEffect.StatusType.Stun);
 }

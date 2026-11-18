@@ -31,4 +31,6 @@ public partial class UnitData : Resource
     {
         Vector2I.Right, Vector2I.Left, Vector2I.Up, Vector2I.Down
     };
+
+    [Export] public Godot.Collections.Array<AbilityData> Abilities { get; set; } = new();
 }

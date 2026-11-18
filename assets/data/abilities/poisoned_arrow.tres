@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://cxpvfa8jbvwgg"]
+
+[ext_resource type="Script" uid="uid://tdtecg2s7u8u" path="res://scripts/abilities/AbilityEffect.cs" id="1_6lt32"]
+[ext_resource type="Script" uid="uid://c0ejv18wko0q0" path="res://scripts/abilities/DamageEffect.cs" id="2_cyypc"]
+[ext_resource type="Script" uid="uid://dhsco7ypwxx4s" path="res://scripts/abilities/AbilityData.cs" id="2_n4siq"]
+[ext_resource type="Script" uid="uid://cncft5siw8hs8" path="res://scripts/abilities/StatusEffect.cs" id="3_semea"]
+
+[sub_resource type="Resource" id="Resource_cyypc"]
+script = ExtResource("2_cyypc")
+Damage = 20
+metadata/_custom_type_script = "uid://c0ejv18wko0q0"
+
+[sub_resource type="Resource" id="Resource_semea"]
+script = ExtResource("3_semea")
+metadata/_custom_type_script = "uid://cncft5siw8hs8"
+
+[resource]
+script = ExtResource("2_n4siq")
+AbilityName = "Poisoned Arrow"
+APCost = 3
+TargetingPattern = Array[Vector2i]([Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0), Vector2i(-1, 0), Vector2i(-2, 0), Vector2i(-3, 0), Vector2i(0, -1), Vector2i(0, -2), Vector2i(0, -3), Vector2i(0, 1), Vector2i(0, 2), Vector2i(0, 3)])
+Effects = Array[ExtResource("1_6lt32")]([SubResource("Resource_cyypc"), SubResource("Resource_semea")])
+metadata/_custom_type_script = "uid://dhsco7ypwxx4s"
