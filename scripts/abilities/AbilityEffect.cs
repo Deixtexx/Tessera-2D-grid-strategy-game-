@@ -10,5 +10,5 @@ public partial class AbilityEffect : Resource
         return new Godot.Collections.Array<Vector2I> { Vector2I.Zero };
     }
 
-    public virtual void Apply(Unit target, Unit caster, UnitManager unitManager) { }
+    public virtual void Apply(Unit target, Unit caster, UnitManager unitManager, Vector2I targetCell) { }
 }

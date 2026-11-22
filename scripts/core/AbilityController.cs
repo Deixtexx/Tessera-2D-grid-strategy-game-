@@ -3,6 +3,15 @@ using System.Collections.Generic;
 
 public class AbilityController
 {
+    public enum AbilityResult
+    {
+        Success,
+        NotEnoughAP,
+        CellOccupied,
+        InvalidTarget,
+        OutOfRange
+    }
+
     private UnitManager _unitManager;
     private TurnManager _turnManager;
 
@@ -33,11 +42,51 @@ public class AbilityController
         return result;
     }
 
-    public bool TryUseAbility(Unit caster, Unit target, AbilityData ability)
+    public bool CanUseAbility(Unit caster, Unit target, AbilityData ability, Vector2I targetCell)
     {
-        if (!_turnManager.TrySpendAP(ability.APCost)) return false;
         foreach (var effect in ability.Effects)
-            effect.Apply(target, caster, _unitManager);
+        {
+            if (effect is DashEffect && _unitManager.IsCellOccupied(targetCell))
+                return false; // клетка для приземления занята
+        }
+
+        if (_turnManager.CurrentAP < ability.APCost)
+            return false;
+
         return true;
+    }
+
+    public AbilityResult TryUseAbility(Unit caster, Unit target, AbilityData ability, Vector2I targetCell, TileMapLayer grid)
+    {
+        // Проверка клетки для рывка
+        foreach (var effect in ability.Effects)
+        {
+            if (effect is DashEffect && _unitManager.IsCellOccupied(targetCell))
+                return AbilityResult.CellOccupied;
+        }
+
+        // Проверка AP
+        if (_turnManager.CurrentAP < ability.APCost)
+            return AbilityResult.NotEnoughAP;
+
+        // Списываем AP
+        if (!_turnManager.TrySpendAP(ability.APCost))
+            return AbilityResult.NotEnoughAP;
+
+        // Применяем эффекты
+        foreach (var effect in ability.Effects)
+        {
+            if (effect is DashEffect)
+            {
+                Vector2 worldPos = grid.MapToLocal(targetCell);
+                caster.MoveTo(targetCell, worldPos);
+            }
+            else
+            {
+                effect.Apply(target, caster, _unitManager, targetCell);
+            }
+        }
+
+        return AbilityResult.Success;
     }
 }

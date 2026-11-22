@@ -1,6 +1,6 @@
 using Godot;
 
-public enum AbilityTargetType { Enemy, Ally, Self, AnyUnit, EmptyCell }
+public enum AbilityTargetType { Enemy, Ally, Self, AnyUnit, EmptyCell, AnyCell }
 
 [GlobalClass]
 public partial class AbilityData : Resource

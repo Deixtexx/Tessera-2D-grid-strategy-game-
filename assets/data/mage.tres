@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UnitData" format=3 uid="uid://csijkjtj28u5a"]
+
+[ext_resource type="Script" uid="uid://dhsco7ypwxx4s" path="res://scripts/abilities/AbilityData.cs" id="1_6o4yp"]
+[ext_resource type="Script" uid="uid://dmbihwhbo6odu" path="res://scripts/units/UnitData.cs" id="2_ncpxx"]
+[ext_resource type="Resource" uid="uid://biktwg4yl4eq8" path="res://assets/data/abilities/fireball.tres" id="2_onaj0"]
+
+[resource]
+script = ExtResource("2_ncpxx")
+UnitName = "Mage"
+Movement = 1
+UnitColor = Color(0.15397686, 0.19245583, 0.19390774, 1)
+Team = 1
+AttackDamage = 25
+AttackAPCost = 2
+MaxHealth = 40
+AttackPattern = Array[Vector2i]([Vector2i(1, 0), Vector2i(2, 0), Vector2i(-1, 0), Vector2i(-2, 0), Vector2i(0, -1), Vector2i(0, -2), Vector2i(0, 1), Vector2i(0, 2)])
+Abilities = Array[ExtResource("1_6o4yp")]([ExtResource("2_onaj0")])
+metadata/_custom_type_script = "uid://dmbihwhbo6odu"
