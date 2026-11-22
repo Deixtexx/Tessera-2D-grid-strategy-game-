@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 public partial class Unit : Node2D
 {
@@ -20,18 +21,25 @@ public partial class Unit : Node2D
 
     private Sprite2D _teamFrame;
 
+    private AnimatedSprite2D _anim;
+
     public override void _Ready()
     {
-        _visual = GetNode<Sprite2D>("Sprite2D");
         _selectionFrame = GetNode<Sprite2D>("SelectionFrame");
         _teamFrame = GetNode<Sprite2D>("TeamFrame");
         _selectionFrame.Visible = false;
 
-        if (Data != null)
+        _anim = GetNode<AnimatedSprite2D>("Visual"); // Имя твоего узла с анимациями
+
+        if (Data != null && Data.Visuals != null)
         {
-            _visual.SelfModulate = Data.UnitColor;
+            _anim.SpriteFrames = Data.Visuals;
             CurrentHealth = Data.MaxHealth;
         }
+
+        // Подписываемся на окончание анимации
+        _anim.AnimationFinished += OnAnimationFinished;
+        _anim.Play("idle");
     }
 
     public void SetTeamFrameVisible(bool visible, Color? color = null)
@@ -135,5 +143,41 @@ public partial class Unit : Node2D
     {
         foreach (var passive in Data.Passives)
             passive.OnTurnStart(this);
+    }
+
+    private void OnAnimationFinished()
+    {
+        // Когда анимация атаки заканчивается, возвращаемся в стойку
+        if (_anim.Animation == "attack")
+        {
+            _anim.Play("idle");
+        }
+    }
+
+    public void PlayAttackAnimation()
+    {
+        if (_anim.SpriteFrames.HasAnimation("attack"))
+        {
+            _anim.Play("attack");
+        }
+    }
+
+    public void PlayIdleAnimation()
+    {
+        if (_anim.SpriteFrames.HasAnimation("idle"))
+        {
+            _anim.Play("idle");
+        }
+    }
+
+    public async Task PlayAttackAnimationAsync()
+    {
+        if (_anim.SpriteFrames.HasAnimation("attack"))
+        {
+            _anim.Play("attack");
+            GD.Print("there 2");
+            // Ждём, пока анимация не закончится
+            await ToSignal(_anim, AnimatedSprite2D.SignalName.AnimationFinished);
+        }
     }
 }

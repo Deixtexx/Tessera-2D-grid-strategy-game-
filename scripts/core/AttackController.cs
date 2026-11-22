@@ -1,5 +1,6 @@
 using Godot;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 public class AttackController
 {
@@ -32,17 +33,22 @@ public class AttackController
         return false;
     }
 
-    public bool TryAttack(Unit attacker, Unit target)
+    public async Task<bool> TryAttack(Unit attacker, Unit target)
     {
         if (!_turnManager.TrySpendAP(attacker.Data.AttackAPCost)) return false;
 
-        int damage = attacker.Data.AttackDamage;
-        foreach (var passive in attacker.Data.Passives)
-            damage = passive.ModifyOutgoingDamage(damage, attacker, target);
+        GD.Print("there");
+        await attacker.PlayAttackAnimationAsync();
 
-        int damageDealt = target.TakeDamage(damage);
+        GD.Print("there 3");
+        // Наносим урон (в этот момент меч уже опустился)
+        int damageDealt = target.TakeDamage(attacker.Data.AttackDamage);
+
+        // Пассивки
         foreach (var passive in attacker.Data.Passives)
             passive.OnDealDamage(attacker, target, damageDealt);
+
         return true;
+
     }
 }

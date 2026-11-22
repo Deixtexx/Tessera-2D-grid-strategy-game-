@@ -3,12 +3,15 @@
 [ext_resource type="Script" uid="uid://dhsco7ypwxx4s" path="res://scripts/abilities/AbilityData.cs" id="1_6o4yp"]
 [ext_resource type="Script" uid="uid://dmbihwhbo6odu" path="res://scripts/units/UnitData.cs" id="2_ncpxx"]
 [ext_resource type="Resource" uid="uid://biktwg4yl4eq8" path="res://assets/data/abilities/fireball.tres" id="2_onaj0"]
+[ext_resource type="Script" uid="uid://cj2vuqwudqbpn" path="res://scripts/passives/PassiveAbility.cs" id="3_6y5nj"]
+[ext_resource type="SpriteFrames" uid="uid://ctj8strwkotf7" path="res://assets/sprites/units/knight_frames.tres" id="4_r0cd7"]
 
 [resource]
 script = ExtResource("2_ncpxx")
 UnitName = "Mage"
 Movement = 1
 UnitColor = Color(0.15397686, 0.19245583, 0.19390774, 1)
+Visuals = ExtResource("4_r0cd7")
 Team = 1
 AttackDamage = 25
 AttackAPCost = 2
