@@ -1,114 +1,126 @@
 using Godot;
 using System.Collections.Generic;
-using static Grid;
 
 public partial class Grid : TileMapLayer
 {
-    public enum InteractionMode { Move, Attack, Ability }
-
     [Export] public int MapWidth { get; set; } = 8;
     [Export] public int MapHeight { get; set; } = 8;
+
     [Export] public UnitManager UnitManager { get; set; }
     [Export] public TurnManager TurnManager { get; set; }
-
     [Export] public MessageUI MessageUI { get; set; }
+    [Export] public TurnUI TurnUI { get; set; }
 
-    // подсветка ходов перемещения
     [Export] public TileMapLayer HighlightLayer { get; set; }
     [Export] public int HighlightSourceId { get; set; } = 1;
     [Export] public Vector2I HighlightAtlasCoords { get; set; } = new Vector2I(0, 0);
 
-    // атака 
     [Export] public TileMapLayer AttackHighlightLayer { get; set; }
     [Export] public int AttackHighlightSourceId { get; set; } = 0;
     [Export] public Vector2I AttackHighlightAtlasCoords { get; set; } = new Vector2I(0, 0);
 
-    // показ задеваемых способностью тайлов
     [Export] public TileMapLayer PreviewHighlightLayer { get; set; }
-    [Export] public int PreviewSourceId { get; set; } = 0; // проверьте в своём TileSet
+    [Export] public int PreviewSourceId { get; set; } = 0;
     [Export] public Vector2I PreviewAtlasCoords { get; set; } = new Vector2I(0, 0);
 
-    private Unit _selectedUnit;
-    private AbilityData _selectedAbility;
+    private SelectionController _selection;
+    private MovementController _movement;
+    private AttackController _attack;
+    private AbilityController _ability;
+    private TurnController _turn;
+    private HighlightController _highlight;
+
     private List<Vector2I> _reachableCells = new();
-    private InteractionMode _mode = InteractionMode.Move;
+    private Dictionary<Vector2I, int> _reachableCosts = new();
 
-    // подтверждение завершения хода
-    private bool _endTurnPending = false;
-    private ulong _endTurnPendingTime = 0;
-    private const ulong EndTurnConfirmWindowMs = 2000; // 2 секунды на подтверждение
-
-    private bool IsInsideMap(Vector2I cell)
-    {
-        return cell.X >= 0 && cell.X < MapWidth && cell.Y >= 0 && cell.Y < MapHeight;
-    }
     public override void _Ready()
     {
-        UnitManager.UpdateTeamFrames(TurnManager.CurrentTeam);
+        _highlight = new HighlightController(
+            HighlightLayer, HighlightSourceId, HighlightAtlasCoords,
+            AttackHighlightLayer, AttackHighlightSourceId, AttackHighlightAtlasCoords,
+            PreviewHighlightLayer, PreviewSourceId, PreviewAtlasCoords
+        );
+
+        _selection = new SelectionController();
+        _selection.SelectionChanged += OnSelectionChanged;
+
+        _movement = new MovementController(UnitManager, TurnManager, this, MapWidth, MapHeight);
+        _attack = new AttackController(UnitManager, TurnManager);
+        _ability = new AbilityController(UnitManager, TurnManager);
+        _turn = new TurnController(UnitManager, TurnManager);
     }
 
     public override void _UnhandledInput(InputEvent @event)
     {
         if (@event.IsActionPressed("end_turn"))
         {
-            TryEndTurn();
+            if (_turn.TryEndTurn())
+            {
+                _selection.Deselect();
+            }
+            else
+            {
+                MessageUI.ShowMessage($"У вас ещё есть AP ({TurnManager.CurrentAP}). Нажмите Space ещё раз.", Colors.Yellow);
+            }
             GetViewport().SetInputAsHandled();
             return;
-        }
-
-        if (@event is InputEventKey keyEvent && keyEvent.Pressed && !keyEvent.Echo)
-        {
-            if (keyEvent.Keycode == Key.Key1) { SelectAbility(0); GetViewport().SetInputAsHandled(); return; }
-            if (keyEvent.Keycode == Key.Key2) { SelectAbility(1); GetViewport().SetInputAsHandled(); return; }
-            if (keyEvent.Keycode == Key.Key3) { SelectAbility(2); GetViewport().SetInputAsHandled(); return; }
         }
 
         if (@event is not InputEventMouseButton mouseEvent || !mouseEvent.Pressed)
             return;
 
-        if (@event is InputEventMouseButton)
-        {
-            _endTurnPending = false;
-        }
+        _turn.CancelPending();
 
         Vector2 localPos = ToLocal(GetGlobalMousePosition());
         Vector2I gridCoords = LocalToMap(localPos);
+        var unitAtCell = UnitManager.GetUnitAt(gridCoords);
 
-        // Правый клик — переключение режима
-        if (mouseEvent.ButtonIndex == MouseButton.Right && _selectedUnit != null)
+        if (mouseEvent.ButtonIndex == MouseButton.Right && _selection.SelectedUnit != null)
         {
-            _mode = _mode == InteractionMode.Move ? InteractionMode.Attack : InteractionMode.Move;
-            GD.Print($"Режим: {_mode}");
-            //if (_selectedUnit != null)
-            ShowPatternForSelectedUnit();
+            _selection.SetMode(_selection.Mode == InteractionMode.Move ? InteractionMode.Attack : InteractionMode.Move);
             return;
         }
 
-        if (mouseEvent.ButtonIndex != MouseButton.Left)
-            return;
+        if (mouseEvent.ButtonIndex != MouseButton.Left) return;
 
-        var unitAtCell = UnitManager.GetUnitAt(gridCoords);
-
-        if (_mode == InteractionMode.Move)
-            HandleMoveClick(gridCoords, unitAtCell);
-        else if (_mode == InteractionMode.Ability)
-            HandleAbilityClick(gridCoords, unitAtCell);
-        else
-            HandleAttackClick(gridCoords, unitAtCell);
+        switch (_selection.Mode)
+        {
+            case InteractionMode.Move:
+                HandleMoveClick(gridCoords, unitAtCell);
+                break;
+            case InteractionMode.Attack:
+                HandleAttackClick(gridCoords, unitAtCell);
+                break;
+            case InteractionMode.Ability:
+                HandleAbilityClick(gridCoords, unitAtCell);
+                break;
+        }
     }
 
     public override void _Process(double delta)
     {
-        if (_mode != InteractionMode.Ability || _selectedAbility == null || _selectedUnit == null)
+        if (_selection.Mode != InteractionMode.Ability || _selection.SelectedAbility == null || _selection.SelectedUnit == null)
         {
-            PreviewHighlightLayer?.Clear();
+            _highlight.ClearPreview();
             return;
         }
 
         Vector2 localPos = ToLocal(GetGlobalMousePosition());
         Vector2I hoveredCell = LocalToMap(localPos);
 
-        UpdateAbilityPreview(hoveredCell);
+        Vector2I offset = hoveredCell - _selection.SelectedUnit.GridPosition;
+        bool inTargeting = false;
+        foreach (var p in _selection.SelectedAbility.TargetingPattern)
+            if (p == offset) { inTargeting = true; break; }
+
+        if (!inTargeting)
+        {
+            _highlight.ClearPreview();
+            return;
+        }
+
+        var previewCells = _ability.GetPreviewCells(hoveredCell, _selection.SelectedAbility, MapWidth, MapHeight);
+        _highlight.ShowPreviewCells(previewCells);
     }
 
     private void HandleMoveClick(Vector2I cell, Unit unitAtCell)
@@ -117,336 +129,106 @@ public partial class Grid : TileMapLayer
         {
             if (unitAtCell.Data.Team != TurnManager.CurrentTeam)
             {
-                MessageUI.ShowMessage("Это юнит противника.", Colors.Red);
+                MessageUI.ShowMessage("Это юнит другой команды", Colors.Red);
                 return;
             }
             if (unitAtCell.IsStunned())
             {
-                MessageUI.ShowMessage($"{unitAtCell.Data.UnitName} оглушён ещё на {unitAtCell.GetStunRemainingTurns()} ход(а)", Colors.Yellow);
+                MessageUI.ShowMessage($"{unitAtCell.Data.UnitName} оглушён", Colors.Yellow);
                 return;
             }
-            // если кликнули по уже выделенному
-            if (_selectedUnit == unitAtCell)
+            if (_selection.SelectedUnit == unitAtCell)
             {
-                DeselectUnit();
+                _selection.Deselect();
                 return;
             }
-            SelectUnit(unitAtCell);
+            _selection.SelectUnit(unitAtCell);
             return;
         }
 
-        if (_selectedUnit == null) return;
-
-        if (!CanSelectedUnitAct()) return;
-
+        if (_selection.SelectedUnit == null) return;
         if (!_reachableCells.Contains(cell))
         {
-            MessageUI.ShowMessage("Клетка недоступна для хода", Colors.Red);
+            MessageUI.ShowMessage("Клетка недоступна", Colors.Red);
             return;
         }
 
-        if (UnitManager.IsCellOccupied(cell))
+        if (_movement.TryMove(_selection.SelectedUnit, cell, _reachableCosts))
         {
-            MessageUI.ShowMessage("Клетка занята", Colors.Red);
-            return;
+            _selection.Deselect();
         }
-
-        int distance = Mathf.Abs(cell.X - _selectedUnit.GridPosition.X)
-             + Mathf.Abs(cell.Y - _selectedUnit.GridPosition.Y);
-        int apCost = distance * _selectedUnit.Data.MoveAPCostPerCell;
-
-        if (distance > _selectedUnit.Data.MovePoints)
-        {
-            GD.Print($"Слишком далеко для этого юнита (макс {_selectedUnit.Data.MovePoints})");
-            return;
-        }
-
-        if (!TurnManager.TrySpendAP(apCost))
+        else
         {
             MessageUI.ShowMessage("Недостаточно AP", Colors.Red);
-            return;
         }
-
-        _selectedUnit.MoveTo(cell, MapToLocal(cell));
-        DeselectUnit();
     }
-
-    private void SelectUnit(Unit unit)
-    {
-        DeselectUnit();
-        _selectedUnit = unit;
-        _selectedUnit.SetSelected(true);
-        ShowPatternForSelectedUnit();
-    }
-
-    private void DeselectUnit()
-    {
-        _selectedUnit?.SetSelected(false);
-        _selectedUnit = null;
-        _reachableCells.Clear();
-        ClearHighlights();
-    }
-
 
     private void HandleAttackClick(Vector2I cell, Unit targetUnit)
     {
-        if (_selectedUnit == null)
+        if (_selection.SelectedUnit == null)
         {
             MessageUI.ShowMessage("Сначала выберите юнита", Colors.Red);
             return;
         }
-        if (!CanSelectedUnitAct()) return;
-
+        if (_selection.SelectedUnit.IsStunned())
+        {
+            MessageUI.ShowMessage("Юнит оглушён", Colors.Red);
+            return;
+        }
         if (targetUnit == null)
         {
-            GD.Print("Нет цели для атаки");
+            MessageUI.ShowMessage("Нет цели", Colors.Red);
             return;
         }
-        if (targetUnit == _selectedUnit)
+        if (targetUnit.Data.Team == _selection.SelectedUnit.Data.Team)
         {
-            GD.Print("Нельзя атаковать себя");
+            MessageUI.ShowMessage("Нельзя атаковать союзника", Colors.Red);
             return;
         }
-        if (!IsInAttackPattern(cell, _selectedUnit))
+        if (!_attack.IsInAttackPattern(cell, _selection.SelectedUnit))
         {
-            MessageUI.ShowMessage("Цель далеко", Colors.Red);
+            MessageUI.ShowMessage("Цель вне паттерна атаки", Colors.Red);
             return;
         }
-        if (targetUnit.Data.Team == TurnManager.CurrentTeam)
+        if (_attack.TryAttack(_selection.SelectedUnit, targetUnit))
         {
-            MessageUI.ShowMessage("Нельзя атаковать своего юнита", Colors.Red);
-            return;
-        }
-        if (!TurnManager.TrySpendAP(_selectedUnit.Data.AttackAPCost))
-        {
-            MessageUI.ShowMessage("Недостаточно AP для атаки", Colors.Red);
-            return;
-        }
-
-        targetUnit.TakeDamage(_selectedUnit.Data.AttackDamage);
-        GD.Print($"{_selectedUnit.Data.UnitName} атакует {targetUnit.Data.UnitName}");
-
-        _mode = InteractionMode.Move;
-
-        _selectedUnit.SetSelected(false);
-        _selectedUnit = null;
-        ClearHighlights();
-    }
-
-    private bool IsInAttackPattern(Vector2I targetCell, Unit attacker)
-    {
-        Vector2I offset = targetCell - attacker.GridPosition;
-        foreach (var patternOffset in attacker.Data.AttackPattern)
-        {
-            if (offset == patternOffset) return true;
-        }
-        return false;
-    }
-
-
-    private void ShowPatternForSelectedUnit()
-    {
-        if (_selectedUnit == null) return;
-
-        HighlightLayer?.Clear();
-        AttackHighlightLayer?.Clear();
-        PreviewHighlightLayer?.Clear();
-        _reachableCells.Clear();
-
-        if (_mode == InteractionMode.Move)
-        {
-            _reachableCells = GetReachableCells(_selectedUnit);
-            HighlightCells(_reachableCells);
-        }
-        else if (_mode == InteractionMode.Attack)
-        {
-            var attackCells = GetAttackCells(_selectedUnit);
-            ShowAttackCells(attackCells);
-        }
-        // Для Ability ничего статично, только предпросмотр в _Process
-    }
-
-    private List<Vector2I> GetAttackCells(Unit attacker)
-    {
-        var result = new List<Vector2I>();
-        foreach (var offset in attacker.Data.AttackPattern)
-        {
-            Vector2I cell = attacker.GridPosition + offset;
-            if (cell.X < 0 || cell.X >= MapWidth || cell.Y < 0 || cell.Y >= MapHeight)
-                continue;
-            result.Add(cell);
-        }
-        return result;
-    }
-
-    private void ShowAttackCells(List<Vector2I> cells)
-    {
-        if (AttackHighlightLayer == null) return;
-        AttackHighlightLayer.Clear();
-        foreach (var cell in cells)
-            AttackHighlightLayer.SetCell(cell, AttackHighlightSourceId, AttackHighlightAtlasCoords);
-    }
-
-    private void ClearAttackHighlights()
-    {
-        AttackHighlightLayer?.Clear();
-    }
-
-    private void HighlightCells(List<Vector2I> cells)
-    {
-        if (HighlightLayer == null) return;
-        HighlightLayer.Clear();
-        foreach (var cell in cells)
-            HighlightLayer.SetCell(cell, HighlightSourceId, HighlightAtlasCoords);
-    }
-
-    private void ClearHighlights()
-    {
-        HighlightLayer?.Clear();
-        AttackHighlightLayer?.Clear();
-    }
-
-    private List<Vector2I> GetReachableCells(Unit unit)
-    {
-        var result = new List<Vector2I>();
-        if (unit.Data == null) return result;
-
-        int budget = Mathf.Min(unit.Data.MovePoints, TurnManager.CurrentAP);
-
-        var queue = new Queue<(Vector2I cell, int remaining)>();
-        var bestRemaining = new Dictionary<Vector2I, int>();
-
-        Vector2I start = unit.GridPosition;
-        queue.Enqueue((start, budget));
-        bestRemaining[start] = budget;
-
-        Vector2I[] dirs = { Vector2I.Up, Vector2I.Down, Vector2I.Left, Vector2I.Right };
-
-        while (queue.Count > 0)
-        {
-            var (current, remaining) = queue.Dequeue();
-            foreach (var dir in dirs)
-            {
-                Vector2I next = current + dir;
-                if (next.X < 0 || next.X >= MapWidth || next.Y < 0 || next.Y >= MapHeight) continue;
-                if (UnitManager.IsCellOccupied(next)) continue;
-
-                int cost = GetMoveCost(next, unit.Data.Movement);
-                if (cost < 0) continue;
-
-                int newRemaining = remaining - cost;
-                if (newRemaining < 0) continue;
-                if (bestRemaining.TryGetValue(next, out int existing) && existing >= newRemaining) continue;
-
-                bestRemaining[next] = newRemaining;
-                result.Add(next);
-                queue.Enqueue((next, newRemaining));
-            }
-        }
-        return result;
-    }
-
-    private int GetMoveCost(Vector2I cell, UnitData.MovementType movement)
-    {
-        if (movement == UnitData.MovementType.Flying) return 1;
-
-        TileData tileData = GetCellTileData(cell);
-        if (tileData == null) return 1;
-
-        int cost = (int)tileData.GetCustomData("move_cost");
-        return cost <= 0 ? 1 : cost;
-    }
-
-    private void EndTurn()
-    {
-        foreach (var unit in UnitManager.GetAllUnits())
-            unit.TickStatuses();
-
-        TurnManager.EndTurn();
-        UnitManager.UpdateTeamFrames(TurnManager.CurrentTeam);
-        DeselectUnit();
-    }
-
-    private void TryEndTurn()
-    {
-        // Если AP уже 0 - завершаем сразу, без подтверждения
-        if (TurnManager.CurrentAP == 0)
-        {
-            EndTurn();
-            return;
-        }
-
-        ulong now = Time.GetTicksMsec();
-
-        if (_endTurnPending && now - _endTurnPendingTime <= EndTurnConfirmWindowMs)
-        {
-            // Второе нажатие в пределах окна - подтверждаем
-            _endTurnPending = false;
-            EndTurn();
+            _selection.Deselect();
         }
         else
         {
-            // Первое нажатие (или окно истекло) - показываем предупреждение
-            _endTurnPending = true;
-            _endTurnPendingTime = now;
-            MessageUI.ShowMessage(
-                $"У вас ещё есть AP ({TurnManager.CurrentAP}). Нажмите Space ещё раз, чтобы завершить ход.",
-                Colors.Yellow
-            );
+            MessageUI.ShowMessage("Недостаточно AP", Colors.Red);
         }
-    }
-
-    private void SelectAbility(int index)
-    {
-        if (_selectedUnit == null) return;
-        if (index < 0 || index >= _selectedUnit.Data.Abilities.Count) return;
-
-        _selectedAbility = _selectedUnit.Data.Abilities[index];
-        _mode = InteractionMode.Ability;
-        GD.Print($"Выбрана способность: {_selectedAbility.AbilityName}");
-        ShowPatternForSelectedUnit();
-    }
-
-    private List<Vector2I> GetAbilityCells(Unit caster, AbilityData ability)
-    {
-        var result = new List<Vector2I>();
-        if (ability == null) return result;
-        foreach (var offset in ability.TargetingPattern)
-        {
-            Vector2I cell = caster.GridPosition + offset;
-            if (cell.X < 0 || cell.X >= MapWidth || cell.Y < 0 || cell.Y >= MapHeight) continue;
-            result.Add(cell);
-        }
-        return result;
     }
 
     private void HandleAbilityClick(Vector2I cell, Unit targetUnit)
     {
-        if (_selectedUnit == null || _selectedAbility == null) return;
+        var caster = _selection.SelectedUnit;
+        var ability = _selection.SelectedAbility;
 
-        if (!CanSelectedUnitAct()) return;
-
-        // Проверка TargetingPattern
-        Vector2I offset = cell - _selectedUnit.GridPosition;
-        bool inTargeting = false;
-        foreach (var p in _selectedAbility.TargetingPattern)
-            if (p == offset) { inTargeting = true; break; }
-
-        if (!inTargeting)
+        if (caster == null || ability == null)
+        {
+            MessageUI.ShowMessage("Способность не выбрана", Colors.Red);
+            return;
+        }
+        if (caster.IsStunned())
+        {
+            MessageUI.ShowMessage("Юнит оглушён", Colors.Red);
+            return;
+        }
+        if (!_ability.IsInTargetingPattern(cell, caster, ability))
         {
             MessageUI.ShowMessage("Цель вне зоны способности", Colors.Red);
             return;
         }
 
-        // Проверка типа цели
-        switch (_selectedAbility.Target)
+        switch (ability.Target)
         {
             case AbilityTargetType.Enemy:
-                if (targetUnit == null || targetUnit.Data.Team == _selectedUnit.Data.Team)
+                if (targetUnit == null || targetUnit.Data.Team == caster.Data.Team)
                 { MessageUI.ShowMessage("Нужна вражеская цель", Colors.Red); return; }
                 break;
             case AbilityTargetType.Ally:
-                if (targetUnit == null || targetUnit.Data.Team != _selectedUnit.Data.Team)
+                if (targetUnit == null || targetUnit.Data.Team != caster.Data.Team)
                 { MessageUI.ShowMessage("Нужна союзная цель", Colors.Red); return; }
                 break;
             case AbilityTargetType.EmptyCell:
@@ -455,61 +237,33 @@ public partial class Grid : TileMapLayer
                 break;
         }
 
-        // Списание AP
-        if (!TurnManager.TrySpendAP(_selectedAbility.APCost))
+        if (_ability.TryUseAbility(caster, targetUnit, ability))
+        {
+            _selection.Deselect();
+        }
+        else
         {
             MessageUI.ShowMessage("Недостаточно AP", Colors.Red);
-            return;
-        }
-
-        // Применение эффектов
-        foreach (var effect in _selectedAbility.Effects)
-            effect.Apply(targetUnit, _selectedUnit, UnitManager);
-
-        GD.Print($"{_selectedUnit.Data.UnitName} применяет {_selectedAbility.AbilityName}");
-
-        _mode = InteractionMode.Move;
-        _selectedAbility = null;
-        DeselectUnit();
-    }
-    private void UpdateAbilityPreview(Vector2I hoveredCell)
-    {
-        if (PreviewHighlightLayer == null || _selectedAbility == null || _selectedUnit == null)
-            return;
-
-        PreviewHighlightLayer.Clear();
-
-        // Проверяем, что клетка под курсором входит в TargetingPattern
-        Vector2I offsetFromUnit = hoveredCell - _selectedUnit.GridPosition;
-        bool inTargeting = false;
-        foreach (var p in _selectedAbility.TargetingPattern)
-            if (p == offsetFromUnit) { inTargeting = true; break; }
-
-        if (!inTargeting || !IsInsideMap(hoveredCell))
-            return;
-
-        // Рисуем форму эффекта от клетки под курсором
-        foreach (var effect in _selectedAbility.Effects)
-        {
-            foreach (var effectOffset in effect.GetEffectOffsets())
-            {
-                Vector2I cell = hoveredCell + effectOffset;
-                if (IsInsideMap(cell))
-                    PreviewHighlightLayer.SetCell(cell, PreviewSourceId, PreviewAtlasCoords);
-            }
         }
     }
 
-    private bool CanSelectedUnitAct()
+    private void OnSelectionChanged()
     {
-        if (_selectedUnit == null) return false;
+        _highlight.ClearAll();
+        _reachableCells.Clear();
+        _reachableCosts.Clear();
 
-        if (_selectedUnit.IsStunned())
+        if (_selection.SelectedUnit == null) return;
+
+        if (_selection.Mode == InteractionMode.Move)
         {
-            MessageUI.ShowMessage($"{_selectedUnit.Data.UnitName} оглушён и не может совершать действия", Colors.Red);
-            return false;
+            _reachableCells = _movement.GetReachableCells(_selection.SelectedUnit, out _reachableCosts);
+            _highlight.ShowMoveCells(_reachableCells);
         }
-
-        return true;
+        else if (_selection.Mode == InteractionMode.Attack)
+        {
+            var cells = _attack.GetAttackCells(_selection.SelectedUnit, MapWidth, MapHeight);
+            _highlight.ShowAttackCells(cells);
+        }
     }
 }
