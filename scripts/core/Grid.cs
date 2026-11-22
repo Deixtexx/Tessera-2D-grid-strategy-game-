@@ -170,13 +170,9 @@ public partial class Grid : TileMapLayer
         {
             _selection.Deselect();
         }
-        else
-        {
-            MessageUI.ShowMessage("Недостаточно AP", Colors.Red);
-        }
     }
 
-    private void HandleAttackClick(Vector2I cell, Unit targetUnit)
+    private async void HandleAttackClick(Vector2I cell, Unit targetUnit)
     {
         if (_selection.SelectedUnit == null)
         {
@@ -203,13 +199,12 @@ public partial class Grid : TileMapLayer
             MessageUI.ShowMessage("Цель вне паттерна атаки", Colors.Red);
             return;
         }
-        if (_attack.TryAttack(_selection.SelectedUnit, targetUnit))
+
+        bool success = await _attack.TryAttack(_selection.SelectedUnit, targetUnit);
+
+        if (success)
         {
             _selection.Deselect();
-        }
-        else
-        {
-            MessageUI.ShowMessage("Недостаточно AP", Colors.Red);
         }
     }
 

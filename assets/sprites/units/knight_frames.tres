@@ -1,0 +1,22 @@
+[gd_resource type="SpriteFrames" format=3 uid="uid://ctj8strwkotf7"]
+
+[ext_resource type="Texture2D" uid="uid://b4q5cgve38ph4" path="res://assets/sprites/units/knight_tier1_64x64.png" id="1_dly5f"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_dly5f")
+}],
+"loop": 0,
+"name": &"attack",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_dly5f")
+}],
+"loop": 1,
+"name": &"idle",
+"speed": 5.0
+}]

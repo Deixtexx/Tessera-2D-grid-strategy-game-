@@ -2,13 +2,15 @@
 
 [ext_resource type="Script" uid="uid://dmbihwhbo6odu" path="res://scripts/units/UnitData.cs" id="1_ub2no"]
 [ext_resource type="Script" uid="uid://dhsco7ypwxx4s" path="res://scripts/abilities/AbilityData.cs" id="1_wwfeq"]
+[ext_resource type="Script" uid="uid://cj2vuqwudqbpn" path="res://scripts/passives/PassiveAbility.cs" id="2_lf1oq"]
+[ext_resource type="SpriteFrames" uid="uid://ctj8strwkotf7" path="res://assets/sprites/units/knight_frames.tres" id="3_457k3"]
 
 [resource]
 script = ExtResource("1_ub2no")
 UnitName = "Knight"
-MovePoints = 1
 MoveAPCostPerCell = 2
 UnitColor = Color(0.13308874, 0.4922946, 0.33506536, 1)
+Visuals = ExtResource("3_457k3")
 AttackDamage = 50
 MaxHealth = 75
 metadata/_custom_type_script = "uid://dmbihwhbo6odu"

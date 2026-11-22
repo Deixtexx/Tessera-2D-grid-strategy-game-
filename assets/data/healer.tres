@@ -3,11 +3,14 @@
 [ext_resource type="Script" uid="uid://dhsco7ypwxx4s" path="res://scripts/abilities/AbilityData.cs" id="1_pvtut"]
 [ext_resource type="Resource" uid="uid://dtn1cdd43jxks" path="res://assets/data/abilities/divine_touch.tres" id="2_fl6ys"]
 [ext_resource type="Script" uid="uid://dmbihwhbo6odu" path="res://scripts/units/UnitData.cs" id="2_uou4h"]
+[ext_resource type="Script" uid="uid://cj2vuqwudqbpn" path="res://scripts/passives/PassiveAbility.cs" id="3_472l8"]
+[ext_resource type="SpriteFrames" uid="uid://ctj8strwkotf7" path="res://assets/sprites/units/knight_frames.tres" id="4_quekm"]
 
 [resource]
 script = ExtResource("2_uou4h")
 UnitName = "Healer"
 UnitColor = Color(0.19683409, 0.54355216, 0.34283078, 1)
+Visuals = ExtResource("4_quekm")
 AttackDamage = 5
 AttackAPCost = 2
 Abilities = Array[ExtResource("1_pvtut")]([ExtResource("2_fl6ys")])

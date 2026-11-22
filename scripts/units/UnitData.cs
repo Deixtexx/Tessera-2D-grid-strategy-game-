@@ -13,7 +13,8 @@ public partial class UnitData : Resource
     [Export] public string UnitName { get; set; } = "Unit";
     [Export] public int MoveAPCostPerCell { get; set; } = 1;
     [Export] public MovementType Movement { get; set; } = MovementType.Ground;
-    [Export] public Color UnitColor { get; set; } = Colors.Red;
+
+    [Export] public SpriteFrames Visuals { get; set; }
 
     public enum Faction { Player, Enemy }
 
