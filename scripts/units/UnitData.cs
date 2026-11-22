@@ -32,4 +32,6 @@ public partial class UnitData : Resource
     };
 
     [Export] public Godot.Collections.Array<AbilityData> Abilities { get; set; } = new();
+
+    [Export] public Godot.Collections.Array<PassiveAbility> Passives { get; set; } = new();
 }

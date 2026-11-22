@@ -3,6 +3,8 @@
 [ext_resource type="Script" uid="uid://dhsco7ypwxx4s" path="res://scripts/abilities/AbilityData.cs" id="1_bg4g3"]
 [ext_resource type="Script" uid="uid://dmbihwhbo6odu" path="res://scripts/units/UnitData.cs" id="1_k6yal"]
 [ext_resource type="Resource" uid="uid://cxpvfa8jbvwgg" path="res://assets/data/abilities/poisoned_arrow.tres" id="2_3bv82"]
+[ext_resource type="Script" uid="uid://cj2vuqwudqbpn" path="res://scripts/passives/PassiveAbility.cs" id="3_bkc7p"]
+[ext_resource type="Resource" uid="uid://cmtyqu62buuhw" path="res://assets/data/passives/armor_pierce.tres" id="4_xx0hj"]
 
 [resource]
 script = ExtResource("1_k6yal")
@@ -11,4 +13,5 @@ UnitColor = Color(0.4065293, 0.74628156, 1, 1)
 AttackDamage = 40
 AttackPattern = Array[Vector2i]([Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0), Vector2i(-1, 0), Vector2i(-2, 0), Vector2i(-3, 0), Vector2i(0, -1), Vector2i(0, -2), Vector2i(0, -3), Vector2i(0, 1), Vector2i(0, 2), Vector2i(0, 3)])
 Abilities = Array[ExtResource("1_bg4g3")]([ExtResource("2_3bv82")])
+Passives = Array[ExtResource("3_bkc7p")]([ExtResource("4_xx0hj")])
 metadata/_custom_type_script = "uid://dmbihwhbo6odu"

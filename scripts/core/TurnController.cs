@@ -41,7 +41,10 @@ public class TurnController
     private void EndTurn()
     {
         foreach (var unit in _unitManager.GetAllUnits())
+        {
+            unit.OnTurnStart();
             unit.TickStatuses();
+        }
 
         _turnManager.EndTurn();
         _unitManager.UpdateTeamFrames(_turnManager.CurrentTeam);

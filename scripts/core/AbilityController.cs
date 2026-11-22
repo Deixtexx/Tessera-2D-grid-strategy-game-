@@ -74,6 +74,9 @@ public class AbilityController
             return AbilityResult.NotEnoughAP;
 
         // Применяем эффекты
+
+        int totalDamage = 0;
+
         foreach (var effect in ability.Effects)
         {
             if (effect is DashEffect)
@@ -83,9 +86,12 @@ public class AbilityController
             }
             else
             {
-                effect.Apply(target, caster, _unitManager, targetCell);
+                totalDamage += effect.Apply(target, caster, _unitManager, targetCell);
             }
         }
+
+        foreach (var passive in caster.Data.Passives)
+            passive.OnDealDamage(caster, target, totalDamage);
 
         return AbilityResult.Success;
     }

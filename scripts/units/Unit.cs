@@ -55,16 +55,22 @@ public partial class Unit : Node2D
         _selectionFrame.Visible = selected;
     }
 
-    public void TakeDamage(int damage)
+    public int TakeDamage(int damage)
     {
-        CurrentHealth -= damage;
-        GD.Print($"{Data.UnitName}: {CurrentHealth}/{Data.MaxHealth} HP");
+        int finalDamage = damage;
+        foreach (var passive in Data.Passives)
+            finalDamage = passive.ModifyIncomingDamage(finalDamage, this);
+
+        CurrentHealth -= finalDamage;
+        GD.Print($"{Data.UnitName}: -{finalDamage} HP, осталось {CurrentHealth}/{Data.MaxHealth}");
 
         if (CurrentHealth <= 0)
         {
             UnitDied?.Invoke(this);
             QueueFree();
         }
+
+        return finalDamage; // возвращаем фактический урон
     }
 
     public void Heal(int amount)
@@ -123,5 +129,11 @@ public partial class Unit : Node2D
     {
         var stun = _statuses.Find(s => s.Type == StatusEffect.StatusType.Stun);
         return stun?.RemainingTurns ?? 0;
+    }
+
+    public void OnTurnStart()
+    {
+        foreach (var passive in Data.Passives)
+            passive.OnTurnStart(this);
     }
 }
