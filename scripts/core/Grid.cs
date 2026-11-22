@@ -66,6 +66,13 @@ public partial class Grid : TileMapLayer
             return;
         }
 
+        if (@event is InputEventKey keyEvent && keyEvent.Pressed && !keyEvent.Echo)
+        {
+            if (keyEvent.Keycode == Key.Key1) { SelectAbilityByIndex(0); GetViewport().SetInputAsHandled(); return; }
+            if (keyEvent.Keycode == Key.Key2) { SelectAbilityByIndex(1); GetViewport().SetInputAsHandled(); return; }
+            if (keyEvent.Keycode == Key.Key3) { SelectAbilityByIndex(2); GetViewport().SetInputAsHandled(); return; }
+        }
+
         if (@event is not InputEventMouseButton mouseEvent || !mouseEvent.Pressed)
             return;
 
@@ -265,5 +272,24 @@ public partial class Grid : TileMapLayer
             var cells = _attack.GetAttackCells(_selection.SelectedUnit, MapWidth, MapHeight);
             _highlight.ShowAttackCells(cells);
         }
+    }
+
+    private void SelectAbilityByIndex(int index)
+    {
+        if (_selection.SelectedUnit == null)
+        {
+            MessageUI.ShowMessage("Сначала выберите юнита", Colors.Red);
+            return;
+        }
+
+        var abilities = _selection.SelectedUnit.Data.Abilities;
+        if (index < 0 || index >= abilities.Count)
+        {
+            MessageUI.ShowMessage("У этого юнита нет такой способности", Colors.Red);
+            return;
+        }
+
+        _selection.SelectAbility(abilities[index]);
+        MessageUI.ShowMessage($"Выбрана способность: {abilities[index].AbilityName}", Colors.Yellow);
     }
 }
