@@ -17,14 +17,20 @@ public partial class SplashDamageEffect : AbilityEffect
         return SplashOffsets;
     }
 
-    public override void Apply(Unit target, Unit caster, UnitManager unitManager, Vector2I targetCell)
+    public override int Apply(Unit target, Unit caster, UnitManager unitManager, Vector2I targetCell)
     {
+        int total = 0;
         foreach (var offset in SplashOffsets)
         {
-            Vector2I cell = targetCell + offset;
-            var unitAtCell = unitManager.GetUnitAt(cell);
+            var unitAtCell = unitManager.GetUnitAt(targetCell + offset);
             if (unitAtCell != null && unitAtCell.Data.Team != caster.Data.Team)
-                unitAtCell.TakeDamage(Damage);
+            {
+                int damage = Damage;
+                foreach (var passive in caster.Data.Passives)
+                    damage = passive.ModifyOutgoingDamage(damage, caster, unitAtCell);
+                total += unitAtCell.TakeDamage(damage);
+            }
         }
+        return total;
     }
 }

@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="VampirismPassive" format=3 uid="uid://bidsyahanh03s"]
+
+[ext_resource type="Script" uid="uid://cg7i48ry6g31l" path="res://scripts/passives/VampirismPassive.cs" id="1_y3e83"]
+
+[resource]
+script = ExtResource("1_y3e83")
+PassiveName = "Bloodfang"
+metadata/_custom_type_script = "uid://cg7i48ry6g31l"

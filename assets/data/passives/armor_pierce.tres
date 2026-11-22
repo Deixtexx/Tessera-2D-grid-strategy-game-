@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="BonusDamagePassive" format=3 uid="uid://cmtyqu62buuhw"]
+
+[ext_resource type="Script" uid="uid://bv7knlfmd8k5q" path="res://scripts/passives/BonusDamagePassive.cs" id="1_kn1le"]
+
+[resource]
+script = ExtResource("1_kn1le")
+metadata/_custom_type_script = "uid://bv7knlfmd8k5q"

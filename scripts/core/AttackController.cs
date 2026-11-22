@@ -35,7 +35,14 @@ public class AttackController
     public bool TryAttack(Unit attacker, Unit target)
     {
         if (!_turnManager.TrySpendAP(attacker.Data.AttackAPCost)) return false;
-        target.TakeDamage(attacker.Data.AttackDamage);
+
+        int damage = attacker.Data.AttackDamage;
+        foreach (var passive in attacker.Data.Passives)
+            damage = passive.ModifyOutgoingDamage(damage, attacker, target);
+
+        int damageDealt = target.TakeDamage(damage);
+        foreach (var passive in attacker.Data.Passives)
+            passive.OnDealDamage(attacker, target, damageDealt);
         return true;
     }
 }
