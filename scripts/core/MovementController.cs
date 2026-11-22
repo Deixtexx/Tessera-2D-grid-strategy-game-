@@ -8,6 +8,8 @@ public class MovementController
     private TileMapLayer _grid;
     private int _mapWidth, _mapHeight;
 
+    public enum MoveResult { Success, NotEnoughAP, Unreachable, CellOccupied, Stunned }
+
     public MovementController(UnitManager unitManager, TurnManager turnManager, TileMapLayer grid, int mapWidth, int mapHeight)
     {
         _unitManager = unitManager;
@@ -17,56 +19,55 @@ public class MovementController
         _mapHeight = mapHeight;
     }
 
-    public List<Vector2I> GetReachableCells(Unit unit, out Dictionary<Vector2I, int> costs)
+    public void GetReachableCells(Unit unit, out Dictionary<Vector2I, int> costs)
     {
         costs = new Dictionary<Vector2I, int>();
-        var result = new List<Vector2I>();
-        if (unit.Data == null) return result;
+        if (unit?.Data == null) return;
 
-        int budget = _turnManager.CurrentAP;
-        var queue = new Queue<(Vector2I cell, int remaining)>();
-        var bestRemaining = new Dictionary<Vector2I, int>();
-
+        var queue = new Queue<(Vector2I cell, int cost)>();
         Vector2I start = unit.GridPosition;
-        queue.Enqueue((start, budget));
-        bestRemaining[start] = budget;
         costs[start] = 0;
+        queue.Enqueue((start, 0));
 
         Vector2I[] dirs = { Vector2I.Up, Vector2I.Down, Vector2I.Left, Vector2I.Right };
 
         while (queue.Count > 0)
         {
-            var (current, remaining) = queue.Dequeue();
+            var (current, currentCost) = queue.Dequeue();
+            if (currentCost > costs[current]) continue;      // устаревшая запись в очереди
+
             foreach (var dir in dirs)
             {
                 Vector2I next = current + dir;
                 if (next.X < 0 || next.X >= _mapWidth || next.Y < 0 || next.Y >= _mapHeight) continue;
                 if (_unitManager.IsCellOccupied(next)) continue;
 
-                int cost = GetMoveCost(next, unit.Data.Movement) * unit.Data.MoveAPCostPerCell;
-                if (cost < 0) continue;
+                int step = GetMoveCost(next, unit.Data.Movement) * unit.Data.MoveAPCostPerCell;
+                if (step < 0) continue;
 
-                int newRemaining = remaining - cost;
-                if (newRemaining < 0) continue;
-                if (bestRemaining.TryGetValue(next, out int existing) && existing >= newRemaining) continue;
+                int newCost = currentCost + step;
+                if (costs.TryGetValue(next, out int known) && known <= newCost) continue;
 
-                bestRemaining[next] = newRemaining;
-                costs[next] = budget - newRemaining;
-                result.Add(next);
-                queue.Enqueue((next, newRemaining));
+                costs[next] = newCost;
+                queue.Enqueue((next, newCost));
             }
         }
-        return result;
+
+        costs.Remove(start);   // своя клетка — не цель перемещения
     }
 
-    public bool TryMove(Unit unit, Vector2I targetCell, Dictionary<Vector2I, int> costs)
+    public MoveResult TryMove(Unit unit, Vector2I targetCell, Dictionary<Vector2I, int> costs)
     {
-        if (!costs.TryGetValue(targetCell, out int apCost)) return false;
-        if (!_turnManager.TrySpendAP(apCost)) return false;
+        if (unit == null) return MoveResult.Unreachable;
+        if (unit.IsStunned()) return MoveResult.Stunned;
+        if (_unitManager.IsCellOccupied(targetCell)) return MoveResult.CellOccupied;
+        if (!costs.TryGetValue(targetCell, out int apCost)) return MoveResult.Unreachable;
+        if (apCost > _turnManager.CurrentAP) return MoveResult.NotEnoughAP;
+        if (!_turnManager.TrySpendAP(apCost)) return MoveResult.NotEnoughAP;
 
-        Vector2 worldPos = _grid.MapToLocal(targetCell);
+        Vector2 worldPos = _grid.ToGlobal(_grid.MapToLocal(targetCell));
         unit.MoveTo(targetCell, worldPos);
-        return true;
+        return MoveResult.Success;
     }
 
     private int GetMoveCost(Vector2I cell, UnitData.MovementType movement)
