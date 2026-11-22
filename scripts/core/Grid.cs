@@ -23,6 +23,10 @@ public partial class Grid : TileMapLayer
     [Export] public int PreviewSourceId { get; set; } = 0;
     [Export] public Vector2I PreviewAtlasCoords { get; set; } = new Vector2I(0, 0);
 
+    [Export] public TileMapLayer AbilityRangeLayer { get; set; }
+    [Export] public int AbilityRangeSourceId { get; set; } = 0;
+    [Export] public Vector2I AbilityRangeAtlasCoords { get; set; } = new Vector2I(0, 0);
+
     private SelectionController _selection;
     private MovementController _movement;
     private AttackController _attack;
@@ -38,7 +42,9 @@ public partial class Grid : TileMapLayer
         _highlight = new HighlightController(
             HighlightLayer, HighlightSourceId, HighlightAtlasCoords,
             AttackHighlightLayer, AttackHighlightSourceId, AttackHighlightAtlasCoords,
-            PreviewHighlightLayer, PreviewSourceId, PreviewAtlasCoords
+            PreviewHighlightLayer, PreviewSourceId, PreviewAtlasCoords,
+            AbilityRangeLayer, AbilityRangeSourceId, AbilityRangeAtlasCoords
+
         );
 
         _selection = new SelectionController();
@@ -242,15 +248,30 @@ public partial class Grid : TileMapLayer
                 if (targetUnit != null)
                 { MessageUI.ShowMessage("Нужна пустая клетка", Colors.Red); return; }
                 break;
+            case AbilityTargetType.AnyCell:
+                // Разрешено и на юнита, и на пустую клетку - ничего не проверяем
+                break;
         }
 
-        if (_ability.TryUseAbility(caster, targetUnit, ability))
+        var result = _ability.TryUseAbility(caster, targetUnit, ability, cell, this);
+
+        switch (result)
         {
-            _selection.Deselect();
-        }
-        else
-        {
-            MessageUI.ShowMessage("Недостаточно AP", Colors.Red);
+            case AbilityController.AbilityResult.Success:
+                _selection.Deselect();
+                break;
+            case AbilityController.AbilityResult.NotEnoughAP:
+                MessageUI.ShowMessage("Недостаточно AP", Colors.Red);
+                break;
+            case AbilityController.AbilityResult.CellOccupied:
+                MessageUI.ShowMessage("Клетка занята", Colors.Red);
+                break;
+            case AbilityController.AbilityResult.InvalidTarget:
+                MessageUI.ShowMessage("Недопустимая цель", Colors.Red);
+                break;
+            case AbilityController.AbilityResult.OutOfRange:
+                MessageUI.ShowMessage("Цель вне зоны", Colors.Red);
+                break;
         }
     }
 
@@ -272,6 +293,11 @@ public partial class Grid : TileMapLayer
             var cells = _attack.GetAttackCells(_selection.SelectedUnit, MapWidth, MapHeight);
             _highlight.ShowAttackCells(cells);
         }
+        else if (_selection.Mode == InteractionMode.Ability && _selection.SelectedAbility != null)
+        {
+            var rangeCells = GetTargetingCells(_selection.SelectedUnit, _selection.SelectedAbility);
+            _highlight.ShowAbilityRange(rangeCells);
+        }
     }
 
     private void SelectAbilityByIndex(int index)
@@ -291,5 +317,17 @@ public partial class Grid : TileMapLayer
 
         _selection.SelectAbility(abilities[index]);
         MessageUI.ShowMessage($"Выбрана способность: {abilities[index].AbilityName}", Colors.Yellow);
+    }
+
+    private List<Vector2I> GetTargetingCells(Unit caster, AbilityData ability)
+    {
+        var result = new List<Vector2I>();
+        foreach (var offset in ability.TargetingPattern)
+        {
+            Vector2I cell = caster.GridPosition + offset;
+            if (cell.X >= 0 && cell.X < MapWidth && cell.Y >= 0 && cell.Y < MapHeight)
+                result.Add(cell);
+        }
+        return result;
     }
 }

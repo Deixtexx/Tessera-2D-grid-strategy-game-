@@ -9,6 +9,7 @@
 [ext_resource type="Texture2D" uid="uid://sunfwg6gpd47" path="res://assets/sprites/attack_highlight.png" id="6_ktef7"]
 [ext_resource type="Script" uid="uid://delw78sh1s2s8" path="res://scripts/ui/TurnUI.cs" id="7_4unv2"]
 [ext_resource type="Texture2D" uid="uid://cpn7vwfjxe4jn" path="res://assets/sprites/ability_preview_highlight.png" id="7_l1je0"]
+[ext_resource type="Texture2D" uid="uid://b0ludvciyaoba" path="res://assets/sprites/ability_zone_highlight.png" id="8_ae2j3"]
 [ext_resource type="Script" uid="uid://s74o24i8lptd" path="res://scripts/ui/MessageUI.cs" id="8_yynx6"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_w20ko"]
@@ -53,9 +54,18 @@ texture_region_size = Vector2i(64, 64)
 tile_size = Vector2i(64, 64)
 sources/0 = SubResource("TileSetAtlasSource_ae2j3")
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_mg55r"]
+texture = ExtResource("8_ae2j3")
+texture_region_size = Vector2i(64, 64)
+0:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_lnf0k"]
+tile_size = Vector2i(64, 64)
+sources/2 = SubResource("TileSetAtlasSource_mg55r")
+
 [node name="Node2D" type="Node2D" unique_id=1613910169]
 
-[node name="Grid" type="TileMapLayer" parent="." unique_id=1351643514 node_paths=PackedStringArray("UnitManager", "TurnManager", "MessageUI", "TurnUI", "HighlightLayer", "AttackHighlightLayer", "PreviewHighlightLayer")]
+[node name="Grid" type="TileMapLayer" parent="." unique_id=1351643514 node_paths=PackedStringArray("UnitManager", "TurnManager", "MessageUI", "TurnUI", "HighlightLayer", "AttackHighlightLayer", "PreviewHighlightLayer", "AbilityRangeLayer")]
 tile_map_data = PackedByteArray("AAAGAAMAAAAAAAAAAAAGAAQAAAAAAAAAAAAGAAUAAAAAAAAAAAAGAAYAAAAAAAAAAAAGAAcAAAAAAAAAAAAHAAMAAAAAAAAAAAAHAAQAAAAAAAAAAAAHAAUAAAAAAAAAAAAHAAYAAAAAAAAAAAAHAAcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAMAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAUAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAcAAAAAAAAAAAABAAAAAAAAAAAAAAABAAEAAAAAAAAAAAABAAIAAAAAAAAAAAABAAMAAAAAAAAAAAABAAQAAAAAAAAAAAABAAUAAAAAAAAAAAABAAYAAAAAAAAAAAABAAcAAAAAAAAAAAACAAAAAAAAAAAAAAACAAEAAAAAAAAAAAACAAIAAAAAAAAAAAACAAMAAAAAAAAAAAACAAQAAAAAAAAAAAACAAUAAAAAAAAAAAACAAYAAAAAAAAAAAACAAcAAAAAAAAAAAADAAAAAAAAAAAAAAADAAEAAAAAAAAAAAADAAIAAAAAAAAAAAADAAMAAAAAAAAAAAADAAQAAAAAAAAAAAADAAUAAAAAAAAAAAADAAYAAAAAAAAAAAADAAcAAAAAAAAAAAAEAAAAAAAAAAAAAAAEAAEAAAAAAAAAAAAEAAIAAAAAAAAAAAAEAAMAAAAAAAAAAAAEAAQAAAAAAAAAAAAEAAUAAAAAAAAAAAAEAAYAAAAAAAAAAAAEAAcAAAAAAAAAAAAFAAAAAAAAAAAAAAAFAAEAAAAAAAAAAAAFAAIAAAAAAAAAAAAFAAMAAAAAAAAAAAAFAAQAAAAAAAAAAAAFAAUAAAAAAAAAAAAFAAYAAAAAAAAAAAAFAAcAAAAAAAAAAAAGAAAAAAAAAAAAAAAGAAEAAAAAAAAAAAAGAAIAAAAAAAAAAAAHAAAAAAAAAAAAAAAHAAEAAAAAAAAAAAAHAAIAAAAAAAAAAAA=")
 tile_set = SubResource("TileSet_cg4xy")
 script = ExtResource("2_w20ko")
@@ -66,6 +76,8 @@ TurnUI = NodePath("../CanvasLayer/TurnLabel")
 HighlightLayer = NodePath("../HighlightLayer")
 AttackHighlightLayer = NodePath("../AttackHighlightLayer")
 PreviewHighlightLayer = NodePath("../PreviewHighlightLayer")
+AbilityRangeLayer = NodePath("../AbilityRangeLayer")
+AbilityRangeSourceId = 2
 
 [node name="UnitManager" type="Node" parent="." unique_id=2128209698 node_paths=PackedStringArray("Grid", "TurnManager")]
 script = ExtResource("3_3wv3p")
@@ -83,6 +95,10 @@ tile_set = SubResource("TileSet_yynx6")
 [node name="PreviewHighlightLayer" type="TileMapLayer" parent="." unique_id=187065495]
 modulate = Color(1, 1, 1, 0.3529412)
 tile_set = SubResource("TileSet_22417")
+
+[node name="AbilityRangeLayer" type="TileMapLayer" parent="." unique_id=1126481112]
+modulate = Color(1, 1, 1, 0.32156864)
+tile_set = SubResource("TileSet_lnf0k")
 
 [node name="TurnManager" type="Node" parent="." unique_id=387840034]
 script = ExtResource("6_buy1m")

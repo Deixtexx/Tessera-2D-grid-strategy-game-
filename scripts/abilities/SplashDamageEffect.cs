@@ -17,13 +17,11 @@ public partial class SplashDamageEffect : AbilityEffect
         return SplashOffsets;
     }
 
-    public override void Apply(Unit target, Unit caster, UnitManager unitManager)
+    public override void Apply(Unit target, Unit caster, UnitManager unitManager, Vector2I targetCell)
     {
-        if (target == null) return;
-
         foreach (var offset in SplashOffsets)
         {
-            Vector2I cell = target.GridPosition + offset;
+            Vector2I cell = targetCell + offset;
             var unitAtCell = unitManager.GetUnitAt(cell);
             if (unitAtCell != null && unitAtCell.Data.Team != caster.Data.Team)
                 unitAtCell.TakeDamage(Damage);

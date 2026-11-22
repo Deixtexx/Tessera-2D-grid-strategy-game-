@@ -9,7 +9,7 @@ public partial class StatusEffect : AbilityEffect
     [Export] public int Duration { get; set; } = 2;
     [Export] public int Power { get; set; } = 3;
 
-    public override void Apply(Unit target, Unit caster, UnitManager unitManager)
+    public override void Apply(Unit target, Unit caster, UnitManager unitManager, Vector2I targetCell)
     {
         if (target != null)
             target.ApplyStatus(new StatusInstance(Status, Duration, Power));
